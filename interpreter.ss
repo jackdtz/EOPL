@@ -1,63 +1,7 @@
 #lang eopl
 
-(define-datatype program program?
-  (a-program (exp expression?)))
-
-(define-datatype expression expression?
-  (lit-exp (datum number?))
-  (var-exp (id symbol?))
-  (primapp-exp
-   (prim primitive?)
-   (rands (list-of expression?))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-(define-datatype primitive primitive?
-  (add (sign is-add?))
-  (subtract (sign is-sub?))
-  (multiply (sign is-mul?))
-  (divide (sign is-div?)))
-
-(define is-add?
-  (lambda (sign)
-    (equal? sign '+)))
-
-(define is-sub?
-  (lambda (sign)
-    (equal? sign '-)))
-
-(define is-mul?
-  (lambda (sign)
-    (equal? sign '*)))
-
-(define is-div?
-  (lambda (sign)
-    (equal? sign '/)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-(define parse-program
-  (lambda (prog)
-    (a-program (parse-expression prog))))
-
-(define parse-expression
-  (lambda (exp)
-    (cond [(number? exp) (lit-exp exp)]
-          [(symbol? exp) (var-exp exp)]
-          (else
-           (cond [(is-add? (car exp))
-                  (primapp-exp (add (car exp)) (map parse-expression (cdr exp)))]
-                 [(is-sub? (car exp))
-                  (primapp-exp (subtract (car exp)) (map parse-expression (cdr exp)))]
-                 [(is-mul? (car exp))
-                  (primapp-exp (multiply (car exp)) (map parse-expression (cdr exp)))]
-                 [(is-div? (car exp))
-                  (primapp-exp (divide (car exp)) (map parse-expression (cdr exp)))])))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+(#%require "parser.ss")
+(#%require "datatypes.ss")
 
 (define eval-program
   (lambda (prog)
