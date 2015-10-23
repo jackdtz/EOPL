@@ -5,7 +5,7 @@
 
 (define eval-program
   (lambda (prog)
-    (cases program (parse-program prog)
+    (cases program  prog
       (a-program (body)
                  (eval-expression body (init-env))))))
 
@@ -16,7 +16,9 @@
       (var-exp (id) (apply-env env id))
       (primapp-exp (prim rands)
                    (let [(args (eval-rands rands env))]
-                     (apply-primitve prim args))))))
+                     (if (equal? (car args) #f)
+                         exp
+                         (apply-primitve prim args)))))))
 
 (define eval-rands
   (lambda (rands env)
@@ -32,16 +34,36 @@
       (add (sign)
            (+ (car args) (cadr args)))
       (subtract (sign)
-                (- (car args) (cadr args)))
+                (if (> (length args) 1)
+                    (- (car args) (cadr args))
+                    (- (car args))))
       (multiply (sign)
                 (* (car args) (cadr args)))
       (divide (sign)
-              (/ (car args) (cadr args))))))
+              (/ (car args) (cadr args)))
+      (add1 (op)
+            (+ 1 (car args)))
+      (subt1 (op)
+             (- (car args) 1))
+      (list-op (op) args)
+      (car-op (op)
+              (let ([pair (car args)])
+                (if (null? pair)
+                    (eopl:error "empty lst")
+                    (car pair))))
+      (cdr-op (op)
+              (let ([pair (car args)])
+                (if (null? pair)
+                    (eopl:error "empty lst")
+                    (cdr pair))))
+      (cons-op (op)
+               (cons (car args) (cadr args))))))
 
 (define apply-env
   (lambda (env sym)
     (if (null? env)
-        #f
+        (begin (display "Unknown Expression ")
+               #f)
         (let ([syms (car (car env))]
               [vals (cadr (car env))]
               [env (cdr env)])
@@ -86,7 +108,17 @@
 
 
 
+(define run
+  (lambda (x)
+    (eval-program (parse-program x))))
 
+(define read-eval-loop
+  (lambda ()
+    (begin
+      (display "--> ")
+      (write (eval-program (parse-program (read))))
+      (newline)
+      (read-eval-loop))))
 
-(display (eval-program '(+ 8 2)))
-(display "\n")
+(read-eval-loop)
+
