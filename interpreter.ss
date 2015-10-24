@@ -34,7 +34,7 @@
       (add (sign)
            (+ (car args) (cadr args)))
       (subtract (sign)
-                (if (> (length args) 1)
+                (if (= (length args) 2)
                     (- (car args) (cadr args))
                     (- (car args))))
       (multiply (sign)
