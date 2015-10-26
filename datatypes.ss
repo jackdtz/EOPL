@@ -8,11 +8,59 @@
 (define-datatype expression expression?
   (lit-exp (datum number?))
   (var-exp (id symbol?))
+  (bool-val (bool boolean?))
+  (boolean-exp
+   (sign boolean-sign?)
+   (rands (list-of expression?)))
+  (if-exp 
+    (predicate expression?)
+    (consequence expression?)
+    (alternative expression?))
   (primapp-exp
    (prim primitive?)
    (rands (list-of expression?))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-datatype boolean-sign boolean-sign?
+  (greater-than-sign
+   (sign greater-sign?))
+  (less-than-sign (sign less-sign?))
+  (equal-sign (sign equal-sign?))
+  (logic-and-sign (sign logic-and-sign?))
+  (logic-or-sign (sign logic-or-sign?))
+  (logic-not-sign (sign logic-not-sign?))
+  (check-null-sign (sign null-sign?)))
+
+(define greater-sign?
+  (lambda (sign)
+    (equal? sign '>)))
+
+(define less-sign?
+  (lambda (sign)
+    (equal? sign '<)))
+
+(define equal-sign?
+  (lambda (sign)
+    (equal? sign '=)))
+
+(define logic-and-sign?
+  (lambda (sign)
+    (equal? sign 'and)))
+
+(define logic-or-sign?
+  (lambda (sign)
+    (equal? sign 'or)))
+
+(define logic-not-sign?
+  (lambda (sign)
+    (equal? sign 'not)))
+
+(define null-sign?
+  (lambda (sign)
+    (equal? sign 'null?)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 (define-datatype primitive primitive?
@@ -67,4 +115,36 @@
   (lambda (op)
     (equal? op 'cons)))
 
+(define get-pred
+  (lambda (exp)
+    (cadr exp)))
+
+(define get-conseq
+  (lambda (exp)
+    (caddr exp)))
+
+(define get-altern
+  (lambda (exp)
+    (cadddr exp)))
+
+(define if-exp?
+  (lambda (exp)
+    (and (equal? (car exp) 'if)
+         (= 4 (length exp)))))
+
+(define true?
+  (lambda (exp)
+    (not (zero? exp))))
+
+
+(define boolean-exp?
+  (lambda (exp)
+    (let [(sign (car exp))]
+      (or (equal? sign '>)
+          (equal? sign '<)
+          (equal? sign '=)
+          (equal? sign 'not)
+          (equal? sign 'and)
+          (equal? sign 'or)
+          (equal? sign 'null?)))))
 

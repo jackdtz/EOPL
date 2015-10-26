@@ -14,11 +14,19 @@
     (cases expression exp
       (lit-exp (datum) datum)
       (var-exp (id) (apply-env env id))
+      (bool-val (bool) bool)
+      (boolean-exp (bool-sign rands)
+                   (let [(args (eval-rands rands env))]
+                         (apply-boolean bool-sign args)))
+      (if-exp (pred conseq altern)
+              (if (true? (eval-expression pred env))
+                  (eval-expression conseq env)
+                  (eval-expression altern env)))
       (primapp-exp (prim rands)
                    (let [(args (eval-rands rands env))]
-                     (if (equal? (car args) #f)
-                         exp
-                         (apply-primitve prim args)))))))
+                         (apply-primitve prim args))))))
+
+
 
 (define eval-rands
   (lambda (rands env)
@@ -27,6 +35,24 @@
 (define eval-rand
   (lambda (rand env)
     (eval-expression rand env)))
+
+(define apply-boolean
+  (lambda (bool-sign args)
+    (cases boolean-sign bool-sign
+           (greater-than-sign (sign)
+                              (> (car args) (cadr args)))
+           (less-than-sign (sign)
+                           (< (car args) (cadr args)))
+           (equal-sign (sign)
+                       (= (car args) (cadr args)))
+           (logic-and-sign (sign)
+                           (and (car args) (cadr args)))
+           (logic-or-sign (sign)
+                          (or (car args) (cadr args)))
+           (logic-not-sign (sign)
+                           (not (car args)))
+           (check-null-sign (sign)
+                            (null? (car args))))))
 
 (define apply-primitve
   (lambda (prim args)
@@ -63,7 +89,7 @@
   (lambda (env sym)
     (if (null? env)
         (begin (display "Unknown Expression ")
-               #f)
+                (eopl:error "unbound variable " sym))
         (let ([syms (car (car env))]
               [vals (cadr (car env))]
               [env (cdr env)])
