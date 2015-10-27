@@ -19,7 +19,7 @@
     (params (list-of symbol?))
     (body expression?))
   (proc-app-exp
-   (procedure closure?)
+   (procedure expression?)
    (args (list-of expression?)))
   (if-exp 
     (predicate expression?)
@@ -70,9 +70,10 @@
     (equal? sign 'null?)))
 
 
-(define-datatype closure closure?
-  (procedure (exp expression?))
-  (env (e environment?)))
+(define-datatype procedure procedure?
+  (closure
+   (lambda-proc expression?)
+   (env environment?)))
 
 (define-datatype environment environment?
   (empty-env-record)

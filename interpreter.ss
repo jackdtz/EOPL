@@ -31,6 +31,16 @@
                  (let [(ids (extract-eval-pair-ids pairs))
                        (values (extract-eval-pair-values pairs))]
                    (eval-expression body (extend-env ids values env)))))
+      (lambda-exp (params body)
+                  (list params body env))
+      (proc-app-exp (rator rands)
+                    (cases procedure rator
+                      (closure (lambda-closure environment)
+                               (let [(params (car lambda-closure))
+                                     (body (cadr lambda-closure))
+                                     (env-1 (caddr lambda-closure))
+                                     (args (eval-rands rands env))]
+                                 (eval-expression body (extend-env params args env-1))))))
       (if-exp (pred conseq altern)
               (if (true? (eval-expression pred env))
                   (eval-expression conseq env)
@@ -196,4 +206,5 @@
       (read-eval-loop))))
 
 
-
+(run '(let [(x 1)]
+        ((lambda (y) (+ x y)) 3)))
