@@ -12,6 +12,12 @@
   (boolean-exp
    (sign boolean-sign?)
    (rands (list-of expression?)))
+  (let-exp
+   (pairs (list-of id-exp-pair?))
+   (body expression?))
+  (lambda-exp
+    (params (list-of symbol?))
+    (body expression?))
   (if-exp 
     (predicate expression?)
     (consequence expression?)
@@ -61,6 +67,21 @@
     (equal? sign 'null?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(define-datatype id-exp-pair id-exp-pair?
+  (name-value-pair
+   (id symbol?)
+   (val-exp expression?)))
+
+(define get-pair-id car)
+(define get-pair-value cadr)
+
+(define get-name-val-pairs cadr)
+
+(define get-let-body caddr)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 (define-datatype primitive primitive?
@@ -147,4 +168,17 @@
           (equal? sign 'and)
           (equal? sign 'or)
           (equal? sign 'null?)))))
+
+(define let-exp?
+  (lambda (exp)
+    (and (equal? (car exp) 'let)
+         (= 3 (length exp)))))
+
+(define lambda-exp?
+  (lambda (exp)
+    (and (equal? (car exp) 'lambda)
+         (= 3 (length exp)))))
+
+(define get-lambda-params cadr)
+(define get-lambda-body caddr)
 

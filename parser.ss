@@ -17,6 +17,10 @@
           [(if-exp? exp) (if-exp (parse-expression (get-pred exp))
                                  (parse-expression (get-conseq exp))
                                  (parse-expression (get-altern exp)))]
+          [(let-exp? exp) (let-exp (parse-let-pairs (get-name-val-pairs exp))
+                                   (parse-expression (get-let-body exp)))]
+          [(lambda-exp? exp) (lambda-exp (map parse-expression (get-lambda-params exp))
+                                         (parse-expression (get-lambda-body exp)))]
           [(boolean-exp? exp)
            (let [(bool-info (parse-boolean-exp exp))]
              (if (memq (length (cdr exp)) (cdr bool-info))
@@ -28,6 +32,15 @@
                       (equal? (cadr prim-info) '()))
                   (primapp-exp (car prim-info) (map parse-expression (cdr exp)))
                   (eopl:error "Incorrect number of parameter")))])))
+
+
+(define parse-let-pairs
+  (lambda (exp)
+    (define parse-pair
+      (lambda (pair)
+        (name-value-pair (get-pair-id pair)
+                         (parse-expression (get-pair-value pair))))) 
+    (map parse-pair exp)))
 
 
 (define parse-boolean-exp
@@ -58,4 +71,5 @@
           [else 
            (eopl:error "unknow expression" exp)])))
 
-
+(parse-expression '(let [(x 3)]
+                     (+ x 1)))

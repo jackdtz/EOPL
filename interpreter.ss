@@ -3,6 +3,14 @@
 (#%require "parser.ss")
 (#%require "datatypes.ss")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                                                     ;
+;                                                     ;
+;                   Interpreter                       ;
+;                                                     ;
+;                                                     ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define eval-program
   (lambda (prog)
     (cases program  prog
@@ -18,6 +26,11 @@
       (boolean-exp (bool-sign rands)
                    (let [(args (eval-rands rands env))]
                          (apply-boolean bool-sign args)))
+      (let-exp (name-value-pairs body)
+               (let [(pairs (eval-name-value-pairs name-value-pairs env))]
+                 (let [(ids (extract-eval-pair-ids pairs))
+                       (values (extract-eval-pair-values pairs))]
+                   (eval-expression body (extend-env ids values env)))))
       (if-exp (pred conseq altern)
               (if (true? (eval-expression pred env))
                   (eval-expression conseq env)
@@ -25,6 +38,25 @@
       (primapp-exp (prim rands)
                    (let [(args (eval-rands rands env))]
                          (apply-primitve prim args))))))
+
+
+(define eval-name-value-pairs
+  (lambda (pairs env)
+    (map (lambda (pair)
+           (cases id-exp-pair pair
+             (name-value-pair (id exp)
+                              (list id (eval-expression exp env)))))
+         pairs)))
+
+
+(define extract-eval-pair-ids
+  (lambda (pairs)
+    (map (lambda (pair) (car pair)) pairs)))
+
+(define extract-eval-pair-values
+  (lambda (pairs)
+    (map (lambda (pair) (cadr pair)) pairs)))
+
 
 
 
@@ -85,19 +117,14 @@
       (cons-op (op)
                (cons (car args) (cadr args))))))
 
-(define apply-env
-  (lambda (env sym)
-    (if (null? env)
-        (begin (display "Unknown Expression ")
-                (eopl:error "unbound variable " sym))
-        (let ([syms (car (car env))]
-              [vals (cadr (car env))]
-              [env (cdr env)])
-          (let ([pos (list-find-position sym syms)])
-            (if (number? pos)
-                (list-ref vals pos)
-                (apply-env env sym)))))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                                                     ;
+;                                                     ;
+;                     environment                     ;
+;                                                     ;
+;                                                     ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define init-env
@@ -114,6 +141,19 @@
 (define extend-env
   (lambda (syms vals env)
     (cons (list syms vals) env)))
+
+(define apply-env
+  (lambda (env sym)
+    (if (null? env)
+        (begin (display "Unknown Expression ")
+                (eopl:error "unbound variable " sym))
+        (let ([syms (car (car env))]
+              [vals (cadr (car env))]
+              [env (cdr env)])
+          (let ([pos (list-find-position sym syms)])
+            (if (number? pos)
+                (list-ref vals pos)
+                (apply-env env sym)))))))
 
 (define list-find-position
   (lambda (symbol list-of-symbol)
@@ -133,6 +173,15 @@
                  (+ 1 list-offset-rest)))))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                                                     ;
+;                                                     ;
+;                 read-eval-print-loop                ;
+;                                                     ;
+;                                                     ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 
 (define run
   (lambda (x)
@@ -146,5 +195,5 @@
       (newline)
       (read-eval-loop))))
 
-(read-eval-loop)
+
 
