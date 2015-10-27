@@ -19,8 +19,10 @@
                                  (parse-expression (get-altern exp)))]
           [(let-exp? exp) (let-exp (parse-let-pairs (get-name-val-pairs exp))
                                    (parse-expression (get-let-body exp)))]
-          [(lambda-exp? exp) (lambda-exp (map parse-expression (get-lambda-params exp))
+          [(lambda-exp? exp) (lambda-exp (get-lambda-params exp)
                                          (parse-expression (get-lambda-body exp)))]
+          [(proc-app-exp? exp) (proc-app-exp (parse-expression (get-proc-lambda exp))
+                                             (map parse-expression (get-proc-params exp)))]
           [(boolean-exp? exp)
            (let [(bool-info (parse-boolean-exp exp))]
              (if (memq (length (cdr exp)) (cdr bool-info))
@@ -72,4 +74,4 @@
            (eopl:error "unknow expression" exp)])))
 
 (parse-expression '(let [(x 3)]
-                     (+ x 1)))
+                     ((lambda (y) (+ x y)) 1)))
