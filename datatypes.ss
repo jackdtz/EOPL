@@ -18,6 +18,9 @@
   (lambda-exp
     (params (list-of symbol?))
     (body expression?))
+  (proc-app-exp
+   (procedure expression?)
+   (args (list-of expression?)))
   (if-exp 
     (predicate expression?)
     (consequence expression?)
@@ -65,6 +68,23 @@
 (define null-sign?
   (lambda (sign)
     (equal? sign 'null?)))
+
+
+(define-datatype procedure procedure?
+  (closure
+    (ids (list-of symbol?))
+    (body expression?)
+    (env environment?)))
+
+(define-datatype environment environment?
+  (empty-env-record
+   (empty-lst empty-lst?))
+  (extendedenv-record
+   (id-value-pairs (list-of pair?))))
+
+(define scheme-value? (lambda (v) #t))
+(define empty-lst? null?)
+  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -176,9 +196,19 @@
 
 (define lambda-exp?
   (lambda (exp)
-    (and (equal? (car exp) 'lambda)
+    (and (list? exp)
+         (equal? (car exp) 'lambda)
          (= 3 (length exp)))))
 
 (define get-lambda-params cadr)
 (define get-lambda-body caddr)
 
+(define proc-app-exp?
+  (lambda (exp)
+    (and (list? exp)
+         (lambda-exp? (car exp))
+         (or (= 1 (length (cdr exp)))
+             (> 1 (length (cdr exp)))))))
+
+(define get-proc-lambda car)
+(define get-proc-params cdr)
