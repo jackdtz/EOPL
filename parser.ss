@@ -21,19 +21,20 @@
                                    (parse-expression (get-let-body exp)))]
           [(lambda-exp? exp) (lambda-exp (get-lambda-params exp)
                                          (parse-expression (get-lambda-body exp)))]
-          [(proc-app-exp? exp) (proc-app-exp (parse-expression (get-proc-lambda exp))
-                                             (map parse-expression (get-proc-params exp)))]
           [(boolean-exp? exp)
            (let [(bool-info (parse-boolean-exp exp))]
              (if (memq (length (cdr exp)) (cdr bool-info))
                  (boolean-exp (car bool-info) (map parse-expression (cdr exp)))
                  (eopl:error "Incorrect number of parameter")))]
-          [else
+          [(primitive-exp? exp)
            	(let [(prim-info (parse-primitive exp))]
               (if (or (memq (length (cdr exp)) (cdr prim-info))
                       (equal? (cadr prim-info) '()))
                   (primapp-exp (car prim-info) (map parse-expression (cdr exp)))
-                  (eopl:error "Incorrect number of parameter")))])))
+                  (eopl:error "Incorrect number of parameter")))]
+          [else
+           (proc-app-exp (parse-expression (get-proc-lambda exp))
+                                             (map parse-expression (get-proc-params exp)))])))
 
 
 (define parse-let-pairs
@@ -73,5 +74,8 @@
           [else 
            (eopl:error "unknow expression" exp)])))
 
-(parse-expression '(let [(x 3)]
-                     ((lambda (y) (+ x y)) 1)))
+(parse-expression '(let [(x 5)]
+                     (let [(x 8)
+                           (f (lambda (y z) (* y (+ x z))))
+                           (g (lambda (u) (+ u x)))]
+                       (f (g 3) 17))))

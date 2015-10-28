@@ -189,6 +189,20 @@
           (equal? sign 'or)
           (equal? sign 'null?)))))
 
+(define primitive-exp?
+  (lambda (exp)
+    (let [(prim-op (car exp))]
+      (or (equal? prim-op '+)
+          (equal? prim-op '-)
+          (equal? prim-op '*)
+          (equal? prim-op '/)
+          (equal? prim-op 'add1)
+          (equal? prim-op 'subt1)
+          (equal? prim-op 'cons)
+          (equal? prim-op 'list)
+          (equal? prim-op 'car)
+          (equal? prim-op 'cdr)))))
+
 (define let-exp?
   (lambda (exp)
     (and (equal? (car exp) 'let)
@@ -212,3 +226,9 @@
 
 (define get-proc-lambda car)
 (define get-proc-params cdr)
+
+(proc-app-exp? '(let [(x 5)]
+                  (let [(x 8)
+                        (f (lambda (y z) (* y (+ x z))))
+                        (g (lambda (u) (+ u x)))]
+                    (f (g 3) 17))))

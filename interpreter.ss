@@ -203,5 +203,8 @@
       (read-eval-loop))))
 
 
-(run '(let [(x 1)]
-        ((lambda (y) (+ x y)) 3)))
+(run '(((lambda (x)
+          (lambda (y)
+            (+ x y)))
+        1)
+       1))
