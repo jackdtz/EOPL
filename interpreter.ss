@@ -2,6 +2,7 @@
 
 (#%require "parser.ss")
 (#%require "datatypes.ss")
+(#%provide (all-defined))
 
 (define nil '())
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -41,7 +42,10 @@
                           (args (eval-rands rands env))]
                       (cases procedure proc-closure
                         (closure (ids body env1)
-                                 (eval-expression body (extend-env (generate-id-value-pairs ids args) (eval-environment env1)))))))
+                          (if (not (= (length ids)
+                                      (length args)))
+                              (eopl:error "Wrong number of arguments for closure")
+                              (eval-expression body (extend-env (generate-id-value-pairs ids args) (eval-environment env1))))))))
       (if-exp (pred conseq altern)
               (if (true? (eval-expression pred env))
                   (eval-expression conseq env)
@@ -103,7 +107,9 @@
            (logic-not-sign (sign)
                            (not (car args)))
            (check-null-sign (sign)
-                            (null? (car args))))))
+                            (null? (car args)))
+           (check-zero-sign (sign)
+                            (zero? (car args))))))
 
 (define apply-primitve
   (lambda (prim args)
@@ -203,8 +209,18 @@
       (read-eval-loop))))
 
 
-(run '(((lambda (x)
-          (lambda (y)
-            (+ x y)))
-        1)
-       1))
+
+(define mutual-recursion-test
+  '(let [(make-even (lambda (pred-1 pred-2 n)
+   	                  (if (zero? n)
+    	                     1
+        	                 (pred-2 pred-2 pred-1 (- n 1)))))]
+    (let [(make-evenake-odd (lambda (pred-1 pred-2 n)
+                              (if (zero? n)
+                                  0
+                                  (pred-2 pred-2 pred-1 (- n 1)))))]
+      (let [(odd? (lambda (x) (make-odd make-odd make-even x)))
+            (even? (lambda (x) (make-even make-even make-odd x)))]
+        (even? 0)))))
+
+(run mutual-recursion-test)

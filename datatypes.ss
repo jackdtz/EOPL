@@ -39,7 +39,8 @@
   (logic-and-sign (sign logic-and-sign?))
   (logic-or-sign (sign logic-or-sign?))
   (logic-not-sign (sign logic-not-sign?))
-  (check-null-sign (sign null-sign?)))
+  (check-null-sign (sign null-sign?))
+  (check-zero-sign (sign zero-sign?)))
 
 (define greater-sign?
   (lambda (sign)
@@ -68,6 +69,10 @@
 (define null-sign?
   (lambda (sign)
     (equal? sign 'null?)))
+
+(define zero-sign?
+  (lambda (sign)
+    (equal? sign 'zero?)))
 
 
 (define-datatype procedure procedure?
@@ -180,14 +185,9 @@
 
 (define boolean-exp?
   (lambda (exp)
-    (let [(sign (car exp))]
-      (or (equal? sign '>)
-          (equal? sign '<)
-          (equal? sign '=)
-          (equal? sign 'not)
-          (equal? sign 'and)
-          (equal? sign 'or)
-          (equal? sign 'null?)))))
+    (let [(sign (car exp))
+          (sign-lst '(> < = not and or null? zero?))]
+      (if (memq sign sign-lst) #t #f))))
 
 (define primitive-exp?
   (lambda (exp)

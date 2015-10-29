@@ -55,6 +55,7 @@
           [(logic-or-sign? (car exp))    (list (logic-or-sign (car exp)) 2)]
           [(logic-not-sign? (car exp))   (list (logic-not-sign (car exp)) 1)]
           [(null-sign? (car exp))        (list (check-null-sign (car exp)) 1)]
+          [(zero-sign? (car exp))        (list (check-zero-sign (car exp)) 1)]
           [else
            (eopl:error "Unknown boolean expression" exp)]))) 
 
