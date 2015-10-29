@@ -180,7 +180,7 @@
 
 (define true?
   (lambda (exp)
-    (not (zero? exp))))
+    (equal? exp #t)))
 
 
 (define boolean-exp?
