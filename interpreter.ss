@@ -55,11 +55,6 @@
                          (apply-primitve prim args))))))
 
 
-
-
-                 
-
-
 (define eval-environment
   (lambda (env)
     (cases environment env

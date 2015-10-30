@@ -8,11 +8,11 @@
 (define-datatype expression expression?
   (lit-exp (datum number?))
   (var-exp (id symbol?))
-  (lexvar-exp
-    (id symbol?)
-    (depth number?)
-    (position number?))
   (bool-val (bool boolean?))
+  (lexvar-exp
+   (id symbol?)
+   (depth number?)
+   (position number?))
   (boolean-exp
    (sign boolean-sign?)
    (rands (list-of expression?)))
@@ -227,13 +227,6 @@
          (lambda-exp? (car exp))
          (or (= 1 (length (cdr exp)))
              (> 1 (length (cdr exp)))))))
-
-(define lexvar-exp?
-  (lambda (exp)
-    (and (list? exp)
-         (= 3 (length exp))
-         (symbol? (car exp))
-         (map number? (cdr exp)))))
 
 (define get-proc-lambda car)
 (define get-proc-params cdr)
