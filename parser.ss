@@ -7,7 +7,7 @@
 
 (define parse-program
   (lambda (prog)
-    (a-program (parse-expression prog))))
+    (a-program (lex-add-calculator (parse-expression prog)))))
 
 (define parse-expression
   (lambda (exp)
@@ -75,6 +75,8 @@
           [else 
            (eopl:error "unknow expression" exp)])))
 
+
+
 (define lex-add-calculator
   (lambda (ast)
     (define helper
@@ -120,22 +122,24 @@
     (let [(depth-lst (get-depth id env 0))]
           (lexvar-exp id (car depth-lst) (get-index id (cdr depth-lst) 0)))))
                
-(define extract-names
-  (lambda (pairs)
-    (map (lambda (pair)
-           (cases id-exp-pair pair
-             (name-value-pair (id value) id)))
-         pairs)))
-
-(define extract-values
-  (lambda (pairs)
-    (map (lambda (pair)
-           (cases id-exp-pair pair
-             (name-value-pair (id value) value)))
-         pairs)))
 
 (define let-to-lambda
   (lambda (ast-exp)
+
+    (define extract-values
+      (lambda (pairs)
+        (map (lambda (pair)
+               (cases id-exp-pair pair
+                 (name-value-pair (id value) value)))
+             pairs)))
+
+    (define extract-names
+      (lambda (pairs)
+        (map (lambda (pair)
+               (cases id-exp-pair pair
+                 (name-value-pair (id value) id)))
+             pairs)))
+    
     (cases expression ast-exp
       (lit-exp (num) ast-exp)
       (var-exp (id) ast-exp)
@@ -153,13 +157,3 @@
       (if-exp (pred conseq altern) ast-exp)
       (primapp-exp (prim rands) ast-exp))))
                               
-
-
-
-
-
-(lex-add-calculator
-  (parse-expression '(let [(x 5)
-                           (z 9)]
-                       (let [(y 8)]
-                         (+ x y)))))
