@@ -10,7 +10,6 @@
   (var-exp (id symbol?))
   (bool-val (bool boolean?))
   (lexvar-exp
-   (id symbol?)
    (depth number?)
    (position number?))
   (boolean-exp
@@ -92,7 +91,7 @@
   (empty-env-record
    (empty-lst empty-lst?))
   (extendedenv-record
-   (id-value-pairs (list-of pair?))))
+   (values (list-of vector?))))
 
 (define scheme-value? (lambda (v) #t))
 (define empty-lst? null?)

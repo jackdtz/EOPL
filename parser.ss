@@ -85,8 +85,9 @@
           (lit-exp (num) ast-exp)
           (var-exp (id) (get-lexical-address id env))
           (bool-val (bool) ast-exp)
-          (lexvar-exp (id depth postion) ast-exp)
-          (boolean-exp (bool-sign rands) ast-exp)
+          (lexvar-exp (depth postion) ast-exp)
+          (boolean-exp (bool-sign rands) (boolean-exp bool-sign
+                                                      (map (lambda (rand) (helper rand env)) rands)))
           (let-exp (name-value-pairs body)
                    (let [(new-ast-exp (let-to-lambda ast-exp))]
                      (helper new-ast-exp env)))
@@ -120,7 +121,7 @@
             base-index
             (get-index id (cdr lst) (+ 1 base-index)))))
     (let [(depth-lst (get-depth id env 0))]
-          (lexvar-exp id (car depth-lst) (get-index id (cdr depth-lst) 0)))))
+          (lexvar-exp (car depth-lst) (get-index id (cdr depth-lst) 0)))))
                
 
 (define let-to-lambda
@@ -144,7 +145,7 @@
       (lit-exp (num) ast-exp)
       (var-exp (id) ast-exp)
       (bool-val (bool) ast-exp)
-      (lexvar-exp (id depth position) ast-exp)
+      (lexvar-exp (depth position) ast-exp)
       (boolean-exp (bool-sign rands) ast-exp)
       (let-exp (name-value-pairs body)
                (let [(params (extract-names name-value-pairs))
@@ -156,4 +157,7 @@
       (proc-app-exp (rator rands) ast-exp)
       (if-exp (pred conseq altern) ast-exp)
       (primapp-exp (prim rands) ast-exp))))
+
+
+
                               
