@@ -21,19 +21,20 @@
                                    (parse-expression (get-let-body exp)))]
           [(lambda-exp? exp) (lambda-exp (get-lambda-params exp)
                                          (parse-expression (get-lambda-body exp)))]
-          [(proc-app-exp? exp) (proc-app-exp (parse-expression (get-proc-lambda exp))
-                                             (map parse-expression (get-proc-params exp)))]
           [(boolean-exp? exp)
            (let [(bool-info (parse-boolean-exp exp))]
              (if (memq (length (cdr exp)) (cdr bool-info))
                  (boolean-exp (car bool-info) (map parse-expression (cdr exp)))
                  (eopl:error "Incorrect number of parameter")))]
-          [else
+          [(primitive-exp? exp)
            	(let [(prim-info (parse-primitive exp))]
               (if (or (memq (length (cdr exp)) (cdr prim-info))
                       (equal? (cadr prim-info) '()))
                   (primapp-exp (car prim-info) (map parse-expression (cdr exp)))
-                  (eopl:error "Incorrect number of parameter")))])))
+                  (eopl:error "Incorrect number of parameter")))]
+          [else
+           (proc-app-exp (parse-expression (get-proc-lambda exp))
+                                             (map parse-expression (get-proc-params exp)))])))
 
 
 (define parse-let-pairs
@@ -54,6 +55,7 @@
           [(logic-or-sign? (car exp))    (list (logic-or-sign (car exp)) 2)]
           [(logic-not-sign? (car exp))   (list (logic-not-sign (car exp)) 1)]
           [(null-sign? (car exp))        (list (check-null-sign (car exp)) 1)]
+          [(zero-sign? (car exp))        (list (check-zero-sign (car exp)) 1)]
           [else
            (eopl:error "Unknown boolean expression" exp)]))) 
 
@@ -73,5 +75,48 @@
           [else 
            (eopl:error "unknow expression" exp)])))
 
-(parse-expression '(let [(x 3)]
-                     ((lambda (y) (+ x y)) 1)))
+(define let-to-lambda
+  (lambda (ast-exp)
+    (cases expression ast-exp
+      (lit-exp (num) ast-exp)
+      (var-exp (id) ast-exp)
+      (bool-val (bool) ast-exp)
+      (lexvar-exp (id depth position) ast-exp)
+      (boolean-exp (bool-sign rands) ast-exp)
+      (let-exp (name-value-pairs body)
+               (let [(params (extract-names name-value-pairs))
+                     (args (extract-values name-value-pairs))]
+                 (let [(new-body (let-to-lambda body))]
+                   (proc-app-exp (lambda-exp params new-body)
+                                 args))))
+      (lambda-exp (params body) ast-exp)
+      (proc-app-exp (rator rands) ast-exp)
+      (if-exp (pred conseq altern) ast-exp)
+      (primapp-exp (prim rands) ast-exp))))
+               
+               
+(define extract-names
+  (lambda (pairs)
+    (map (lambda (pair)
+           (cases id-exp-pair pair
+             (name-value-pair (id value) id)))
+         pairs)))
+
+(define extract-values
+  (lambda (pairs)
+    (map (lambda (pair)
+           (cases id-exp-pair pair
+             (name-value-pair (id value) value)))
+         pairs)))
+                              
+
+
+
+(define ast
+  (parse-expression '(let [(x 5)
+                         (z 9)]
+                     (let [(y 8)]
+                       (+ x y)))))
+
+(let-to-lambda ast)
+                           

@@ -8,6 +8,10 @@
 (define-datatype expression expression?
   (lit-exp (datum number?))
   (var-exp (id symbol?))
+  (lexvar-exp
+    (id symbol?)
+    (depth number?)
+    (position number?))
   (bool-val (bool boolean?))
   (boolean-exp
    (sign boolean-sign?)
@@ -39,7 +43,8 @@
   (logic-and-sign (sign logic-and-sign?))
   (logic-or-sign (sign logic-or-sign?))
   (logic-not-sign (sign logic-not-sign?))
-  (check-null-sign (sign null-sign?)))
+  (check-null-sign (sign null-sign?))
+  (check-zero-sign (sign zero-sign?)))
 
 (define greater-sign?
   (lambda (sign)
@@ -69,20 +74,25 @@
   (lambda (sign)
     (equal? sign 'null?)))
 
+(define zero-sign?
+  (lambda (sign)
+    (equal? sign 'zero?)))
+
 
 (define-datatype procedure procedure?
   (closure
-   (lambda-proc expression?)
-   (env environment?)))
+    (ids (list-of symbol?))
+    (body expression?)
+    (env environment?)))
 
 (define-datatype environment environment?
-  (empty-env-record)
+  (empty-env-record
+   (empty-lst empty-lst?))
   (extendedenv-record
-   (syms (list-of symbol?))
-   (vals (list-of scheme-value?))
-   (env environment?)))
+   (id-value-pairs (list-of pair?))))
 
 (define scheme-value? (lambda (v) #t))
+(define empty-lst? null?)
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -174,19 +184,28 @@
 
 (define true?
   (lambda (exp)
-    (not (zero? exp))))
+    (equal? exp #t)))
 
 
 (define boolean-exp?
   (lambda (exp)
-    (let [(sign (car exp))]
-      (or (equal? sign '>)
-          (equal? sign '<)
-          (equal? sign '=)
-          (equal? sign 'not)
-          (equal? sign 'and)
-          (equal? sign 'or)
-          (equal? sign 'null?)))))
+    (let [(sign (car exp))
+          (sign-lst '(> < = not and or null? zero?))]
+      (if (memq sign sign-lst) #t #f))))
+
+(define primitive-exp?
+  (lambda (exp)
+    (let [(prim-op (car exp))]
+      (or (equal? prim-op '+)
+          (equal? prim-op '-)
+          (equal? prim-op '*)
+          (equal? prim-op '/)
+          (equal? prim-op 'add1)
+          (equal? prim-op 'subt1)
+          (equal? prim-op 'cons)
+          (equal? prim-op 'list)
+          (equal? prim-op 'car)
+          (equal? prim-op 'cdr)))))
 
 (define let-exp?
   (lambda (exp)
@@ -209,5 +228,18 @@
          (or (= 1 (length (cdr exp)))
              (> 1 (length (cdr exp)))))))
 
+(define lexvar-exp?
+  (lambda (exp)
+    (and (list? exp)
+         (= 3 (length exp))
+         (symbol? (car exp))
+         (map number? (cdr exp)))))
+
 (define get-proc-lambda car)
 (define get-proc-params cdr)
+
+(proc-app-exp? '(let [(x 5)]
+                  (let [(x 8)
+                        (f (lambda (y z) (* y (+ x z))))
+                        (g (lambda (u) (+ u x)))]
+                    (f (g 3) 17))))

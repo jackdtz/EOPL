@@ -2,7 +2,9 @@
 
 (#%require "parser.ss")
 (#%require "datatypes.ss")
+(#%provide (all-defined))
 
+(define nil '())
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                                                     ;
 ;                                                     ;
@@ -30,17 +32,20 @@
                (let [(pairs (eval-name-value-pairs name-value-pairs env))]
                  (let [(ids (extract-eval-pair-ids pairs))
                        (values (extract-eval-pair-values pairs))]
-                   (eval-expression body (extend-env ids values env)))))
+                   (eval-expression body (extend-env (generate-id-value-pairs ids values) env)))))
       (lambda-exp (params body)
-                  (list params body env))
+                  (closure params
+                           body
+                           (extendedenv-record env)))
       (proc-app-exp (rator rands)
-                    (cases procedure rator
-                      (closure (lambda-closure environment)
-                               (let [(params (car lambda-closure))
-                                     (body (cadr lambda-closure))
-                                     (env-1 (caddr lambda-closure))
-                                     (args (eval-rands rands env))]
-                                 (eval-expression body (extend-env params args env-1))))))
+                    (let [(proc-closure (eval-expression rator env))
+                          (args (eval-rands rands env))]
+                      (cases procedure proc-closure
+                        (closure (ids body env1)
+                          (if (not (= (length ids)
+                                      (length args)))
+                              (eopl:error "Wrong number of arguments for closure")
+                              (eval-expression body (extend-env (generate-id-value-pairs ids args) (eval-environment env1))))))))
       (if-exp (pred conseq altern)
               (if (true? (eval-expression pred env))
                   (eval-expression conseq env)
@@ -48,6 +53,19 @@
       (primapp-exp (prim rands)
                    (let [(args (eval-rands rands env))]
                          (apply-primitve prim args))))))
+
+
+
+
+                 
+
+
+(define eval-environment
+  (lambda (env)
+    (cases environment env
+      (empty-env-record (empty-lst) '())
+      (extendedenv-record (pair-lst) pair-lst))))
+                          
 
 
 (define eval-name-value-pairs
@@ -94,7 +112,9 @@
            (logic-not-sign (sign)
                            (not (car args)))
            (check-null-sign (sign)
-                            (null? (car args))))))
+                            (null? (car args)))
+           (check-zero-sign (sign)
+                            (zero? (car args))))))
 
 (define apply-primitve
   (lambda (prim args)
@@ -140,8 +160,9 @@
 (define init-env
   (lambda ()
     (extend-env
-     '(i v x)
-     '(1 5 10)
+     '((i 1)
+       (v 5)
+       (x 10))
      (empty-env))))
 
 (define empty-env
@@ -149,38 +170,25 @@
     '()))
 
 (define extend-env
-  (lambda (syms vals env)
-    (cons (list syms vals) env)))
+  (lambda (sym-val-pairs env)
+    (if (null? sym-val-pairs)
+        env
+        (cons (car sym-val-pairs)
+              (extend-env (cdr sym-val-pairs) env)))))
+          
 
 (define apply-env
   (lambda (env sym)
     (if (null? env)
         (begin (display "Unknown Expression ")
                 (eopl:error "unbound variable " sym))
-        (let ([syms (car (car env))]
-              [vals (cadr (car env))]
-              [env (cdr env)])
-          (let ([pos (list-find-position sym syms)])
-            (if (number? pos)
-                (list-ref vals pos)
-                (apply-env env sym)))))))
+        (cond [(equal? sym (caar env)) (cadar env)]
+              [else
+               (apply-env (cdr env) sym)]))))
 
-(define list-find-position
-  (lambda (symbol list-of-symbol)
-    (list-index
-     (lambda (syml)
-       (equal? syml symbol))
-     list-of-symbol)))
-
-(define list-index
-  (lambda (predicate lst)
-    (cond [(null? lst) #f]
-          [(predicate (car lst)) 0]
-          (else
-           (let [(list-offset-rest (list-index predicate (cdr lst)))]
-             (if (equal? list-offset-rest #f)
-                 #f
-                 (+ 1 list-offset-rest)))))))
+(define generate-id-value-pairs
+  (lambda (ids values)
+    (map list ids values)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -206,5 +214,5 @@
       (read-eval-loop))))
 
 
-(run '(let [(x 1)]
-        ((lambda (y) (+ x y)) 3)))
+
+
