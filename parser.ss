@@ -75,6 +75,65 @@
           [else 
            (eopl:error "unknow expression" exp)])))
 
+(define lex-add-calculator
+  (lambda (ast)
+    (define helper
+      (lambda (ast-exp env)
+        (cases expression ast-exp
+          (lit-exp (num) ast-exp)
+          (var-exp (id) (get-lexical-address id env))
+          (bool-val (bool) ast-exp)
+          (lexvar-exp (id depth postion) ast-exp)
+          (boolean-exp (bool-sign rands) ast-exp)
+          (let-exp (name-value-pairs body)
+                   (let [(new-ast-exp (let-to-lambda ast-exp))]
+                     (helper new-ast-exp env)))
+          (lambda-exp (params body)
+                      (lambda-exp params (helper body (cons params env))))
+          (proc-app-exp (rator rands)
+                        (proc-app-exp (helper rator env)
+                                      (map (lambda (subexp) (helper subexp env))
+                                           rands)))
+          (if-exp (pred conseq altern)
+                (if-exp (helper pred env)
+                        (helper conseq env)
+                        (helper altern env)))
+          (primapp-exp (prim rands)
+                       (primapp-exp prim
+                                    (map (lambda (rand) (helper rand env))
+                                         rands))))))
+    (helper ast '())))
+
+(define get-lexical-address
+  (lambda (id env)
+    (define get-depth
+      (lambda (id lst base-depth)
+        (cond [(null? lst) (eopl:error "unbounded variable " id)]
+              [(memq id (car lst)) (cons base-depth (car lst))]
+              [else
+               (get-depth id (cdr lst) (+ base-depth 1))])))
+    (define get-index
+      (lambda (id lst base-index)
+        (if (equal? id (car lst))
+            base-index
+            (get-index id (cdr lst) (+ 1 base-index)))))
+    (let [(depth-lst (get-depth id env 0))]
+          (lexvar-exp id (car depth-lst) (get-index id (cdr depth-lst) 0)))))
+               
+(define extract-names
+  (lambda (pairs)
+    (map (lambda (pair)
+           (cases id-exp-pair pair
+             (name-value-pair (id value) id)))
+         pairs)))
+
+(define extract-values
+  (lambda (pairs)
+    (map (lambda (pair)
+           (cases id-exp-pair pair
+             (name-value-pair (id value) value)))
+         pairs)))
+
 (define let-to-lambda
   (lambda (ast-exp)
     (cases expression ast-exp
@@ -93,29 +152,14 @@
       (proc-app-exp (rator rands) ast-exp)
       (if-exp (pred conseq altern) ast-exp)
       (primapp-exp (prim rands) ast-exp))))
-               
-               
-(define extract-names
-  (lambda (pairs)
-    (map (lambda (pair)
-           (cases id-exp-pair pair
-             (name-value-pair (id value) id)))
-         pairs)))
-
-(define extract-values
-  (lambda (pairs)
-    (map (lambda (pair)
-           (cases id-exp-pair pair
-             (name-value-pair (id value) value)))
-         pairs)))
                               
 
 
 
-(define ast
-  (parse-expression '(let [(x 5)
-                         (z 9)]
-                     (let [(y 8)]
-                       (+ x y)))))
 
-(let-to-lambda ast)
+
+(lex-add-calculator
+  (parse-expression '(let [(x 5)
+                           (z 9)]
+                       (let [(y 8)]
+                         (+ x y)))))
