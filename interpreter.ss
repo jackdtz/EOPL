@@ -2,6 +2,7 @@
 
 (#%require "parser.ss")
 (#%require "datatypes.ss")
+(#%require "utils.ss")
 (#%provide (all-defined))
 
 (define nil '())
@@ -36,7 +37,7 @@
       (lambda-exp (params body)
                   (closure params
                            body
-                           (extendedenv-record env)))
+                           (extendedenv-record (get-saved-env params body env)))))
       (proc-app-exp (rator rands)
                     (let [(proc-closure (eval-expression rator env))
                           (args (eval-rands rands env))]
@@ -81,8 +82,11 @@
     (map (lambda (pair) (cadr pair)) pairs)))
 
 
-
-
+(define get-saved-env
+  (lambda (params body env)
+    (let [(free-vars-adds (get-none-0-depth-vars body))]
+      (map (lambda (lex-add) 
+             
 (define eval-rands
   (lambda (rands env)
     (map (lambda (rand) (eval-rand rand env)) rands)))
@@ -90,6 +94,8 @@
 (define eval-rand
   (lambda (rand env)
     (eval-expression rand env)))
+
+
 
 (define apply-boolean
   (lambda (bool-sign args)

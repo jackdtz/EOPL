@@ -158,6 +158,12 @@
       (if-exp (pred conseq altern) ast-exp)
       (primapp-exp (prim rands) ast-exp))))
 
+(parse-program (proc-app-exp? '(let [(x 5)]
+                  (let [(x 8)
+                        (f (lambda (y z) (* y (+ x z))))
+                        (g (lambda (u) (+ u x)))]
+                    (f (g 3) 17)))))
+
 
 
                               
