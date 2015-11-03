@@ -5,7 +5,6 @@
 (#%require "utils.ss")
 (#%provide (all-defined))
 
-(define nil '())
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                                                     ;
 ;                                                     ;
@@ -37,7 +36,8 @@
       (lambda-exp (params body)
                   (closure params
                            body
-                           (extendedenv-record (get-saved-env params body env)))))
+                           (let [(saved-env (get-saved-env params body env))]
+                             (extendedenv-record saved-env))))
       (proc-app-exp (rator rands)
                     (let [(proc-closure (eval-expression rator env))
                           (args (eval-rands rands env))]
@@ -82,11 +82,8 @@
     (map (lambda (pair) (cadr pair)) pairs)))
 
 
-(define get-saved-env
-  (lambda (params body env)
-    (let [(free-vars-adds (get-none-0-depth-vars body))]
-      (map (lambda (lex-add) 
-             
+
+
 (define eval-rands
   (lambda (rands env)
     (map (lambda (rand) (eval-rand rand env)) rands)))
@@ -94,8 +91,6 @@
 (define eval-rand
   (lambda (rand env)
     (eval-expression rand env)))
-
-
 
 (define apply-boolean
   (lambda (bool-sign args)
@@ -167,13 +162,25 @@
   (lambda (vals env)
     (cons (list->vector vals) env)))
 
-(define apply-nameless-env
-  (lambda (depth position env)
-    (define get-target-vec
+ (define get-target-vec
       (lambda (depth lst counter)
         (if (= counter depth)
             (car lst)
             (get-target-vec depth (cdr lst) (+ counter 1)))))
+
+(define get-saved-env
+  (lambda (params body env)
+    (let [(free-vars-adds (get-free-var-lexadd body))]
+      (map (lambda (lex-add)
+             (cases expression lex-add
+               (lexvar-exp (depth position)
+                           (get-target-vec (- depth 1) env 0))
+               (else
+                (eopl:error "saved env error"))))
+      free-vars-adds))))
+
+(define apply-nameless-env
+  (lambda (depth position env)   
     (let [(target-vec (get-target-vec depth env 0))]
       (vector-ref target-vec position))))
 
@@ -199,6 +206,7 @@
       (write (eval-program (parse-program (read))))
       (newline)
       (read-eval-loop))))
+
 
 
 

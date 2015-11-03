@@ -4,6 +4,18 @@
 (#%provide (all-defined))
 
 (define nil '())
+
+(define accumulate
+  (lambda (precedure init sequence)
+    (if (null? sequence)
+        init
+        (precedure (car sequence)
+                   (accumulate precedure init (cdr sequence))))))
+
+(define flat-map
+  (lambda (procedure sequence)
+    (accumulate append nil (map procedure sequence))))
+
 (define filter
   (lambda (predicate sequence)
     (cond [(null? sequence) sequence]
@@ -13,63 +25,29 @@
           [else
            (filter predicate (cdr sequence))])))
 
-(define set-difference
-  (lambda (set-1 set-2)
-    (cond [(null? set-1) set-2]
-          [(null? set-2) set-1]
-          [(member (car set-1) set-2) 
-           (cons (car set-1)
-                 (set-difference (cdr set-1) set-2))]
-          [else
-           (set-difference (cdr set-1) set-2)])))
-
-(define extract-all-vars
+(define get-free-var-lexadd
   (lambda (exp)
-    
-    (define collector
-      (lambda (exp vars)
-        (cond [(symbol? exp)
-               (if (not (memq exp vars))
-                   (cons exp vars)
-                   vars)]
-              [(lambda-exp? exp) (collector (get-lambda-body exp) vars)]
-              [else
-               (append (collector (car exp) vars)
-                       (collector (cadr exp) vars))])))
-    (collector exp nil)))
-
-(define occur-free?
-  (lambda (var exp)
-    (cases expression exp
-           (lit-exp (datum) #f)
-           (var-exp (id)
-                    (if (equal? var id) #t #f))
-           (bool-val (bool) #f)
-           (lexvar-exp (depth position) #f)
-           (boolean-exp (sign rands)
-                        (not (memq #f (map (lambda (rand) (occur-free? var rand))
-                                           rands))))
-           (let-exp (pairs body) #f)
-           (lambda-exp (params body)
-                       (and (not (memq var params))
-                            (occur-free? var body)))
-           (proc-app-exp (procedure args)
-                         (and (occur-free? var procedure)
-                              (not (memq #f (map (lambda (arg) (occur-free? var arg))
-                                                 args)))))
-           (if-exp (predicate consequence alternative)
-                   (and (occur-free? var predicate)
-                        (occur-free? var consequence)
-                        (occur-free? var alternative)))
-           (primapp-exp (prim rands)
-                        (not (memq #f (map (lambda (rand) (occur-free? var rand))
-                                           rands)))))))
-
-
-
-(define free-vars
-  (lambda (exp)
-    (filter (lambda (var) (occur-free? var exp)) (extract-all-vars exp))))
+    (define helper
+      (lambda (exp collector)
+        (cases expression exp
+          (lit-exp (num) collector)
+          (var-exp (id) collector)
+          (bool-val (bool) collector)
+          (lexvar-exp (depth position)
+                      (if (not (= 0 depth))
+                          (cons exp collector)
+                          collector))
+          (boolean-exp (sign rands)
+                       (flat-map (lambda (rand) (helper rand collector)) rands))
+          (let-exp (pairs body) collector)
+          (lambda-exp (params body) collector)
+          (proc-app-exp (procedure args)
+                        (flat-map (lambda (arg) (helper arg collector)) args))
+          (if-exp (pred conseq altern)
+                  (flat-map (lambda (sub-exp) (helper sub-exp collector)) (list pred conseq altern)))
+          (primapp-exp (prim rands)
+                       (flat-map (lambda (rand) (helper rand collector)) rands)))))
+    (helper exp '())))
 
 
 
