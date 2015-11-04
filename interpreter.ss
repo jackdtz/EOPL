@@ -66,11 +66,11 @@
 
 (define eval-name-value-pairs
   (lambda (pairs env)
-    (map (lambda (pair)
-           (cases id-exp-pair pair
-             (name-value-pair (id exp)
-                              (list id (eval-expression exp env)))))
-         pairs)))
+    (flat-map (lambda (pair)
+                (cases id-exp-pair pair
+                  (name-value-pair (id exp)
+                                   (list id (eval-expression exp env)))))
+              pairs)))
 
 
 (define extract-eval-pair-ids
@@ -171,13 +171,19 @@
 (define get-saved-env
   (lambda (params body env)
     (let [(free-vars-adds (get-free-var-lexadd body))]
-      (map (lambda (lex-add)
-             (cases expression lex-add
-               (lexvar-exp (depth position)
-                           (get-target-vec (- depth 1) env 0))
-               (else
-                (eopl:error "saved env error"))))
-      free-vars-adds))))
+      (define helper
+        (lambda (free-var-adds collector)
+          (if (null? free-var-adds)
+              collector
+              (let [(lex-add (car free-var-adds))]
+                (cases expression lex-add
+                  (lexvar-exp (depth position)
+                              (if (= depth (length collector)) ; if rib is already incude in closure env
+                                  (helper (cdr free-var-adds) collector)
+                                  (helper (cdr free-var-adds) (cons (get-target-vec (- depth 1) env 0) collector))))
+                  (else
+                   (eopl:error "wrong type get-save-env")))))))
+      (helper free-vars-adds '()))))
 
 (define apply-nameless-env
   (lambda (depth position env)   
@@ -209,4 +215,7 @@
 
 
 
-
+(run '(let [(x 1)
+            (z 3)]
+        (let [(y 2)]
+          (+ x (- z y)))))
