@@ -1,13 +1,12 @@
 #lang eopl
 
 (#%require "datatypes.ss")
-
 (#%provide (all-defined))
 
 
 (define parse-program
   (lambda (prog)
-    (a-program (lex-add-calculator (parse-expression prog)))))
+    (a-program (lex-add-calculator (currying-exp (let-to-lambda (parse-expression prog)))))))
 
 (define parse-expression
   (lambda (exp)
@@ -62,16 +61,16 @@
 
 (define parse-primitive
   (lambda (prim-exp)
-    (cond [(is-add? (car prim-exp))		(list (add (car prim-exp)) 2)]
-          [(is-sub? (car prim-exp))		(list (subtract (car prim-exp)) 1 2)]
-          [(is-mul? (car prim-exp))		(list (multiply (car prim-exp)) 2)]
-          [(is-div? (car prim-exp))		(list (divide (car prim-exp)) 2)]
-          [(add1? (car prim-exp))		(list (add1 (car prim-exp)) 1)]
-          [(subt1? (car prim-exp))		(list (subt1 (car prim-exp)) 1)]
-          [(list-op? (car prim-exp)) 	(list (list-op (car prim-exp)) '())]
-          [(car? (car prim-exp))		(list (car-op (car prim-exp)) 1)]
-          [(cdr? (car prim-exp))		(list (cdr-op (car prim-exp)) 1)]
-          [(cons? (car prim-exp))		(list (cons-op (car prim-exp)) 2)]
+    (cond [(is-add? (car prim-exp))		   (list (add (car prim-exp)) 2)]
+          [(is-sub? (car prim-exp))		   (list (subtract (car prim-exp)) 1 2)]
+          [(is-mul? (car prim-exp))		   (list (multiply (car prim-exp)) 2)]
+          [(is-div? (car prim-exp))		   (list (divide (car prim-exp)) 2)]
+          [(add1? (car prim-exp))		     (list (add1 (car prim-exp)) 1)]
+          [(subt1? (car prim-exp))		   (list (subt1 (car prim-exp)) 1)]
+          [(list-op? (car prim-exp)) 	   (list (list-op (car prim-exp)) '())]
+          [(car? (car prim-exp))		     (list (car-op (car prim-exp)) 1)]
+          [(cdr? (car prim-exp))		     (list (cdr-op (car prim-exp)) 1)]
+          [(cons? (car prim-exp))		     (list (cons-op (car prim-exp)) 2)]
           [else 
            (eopl:error "unknow expression" exp)])))
 
@@ -85,14 +84,13 @@
           (lit-exp (num) ast-exp)
           (var-exp (id) (get-lexical-address id env))
           (bool-val (bool) ast-exp)
-          (lexvar-exp (depth postion) ast-exp)
+          (lexvar-exp (postion) ast-exp)
           (boolean-exp (bool-sign rands) (boolean-exp bool-sign
                                                       (map (lambda (rand) (helper rand env)) rands)))
           (let-exp (name-value-pairs body)
-                   (let [(new-ast-exp (let-to-lambda ast-exp))]
-                     (helper new-ast-exp env)))
+                   (eopl:error "let-exp should not exist in lex-add-calculator"))
           (lambda-exp (params body)
-                      (lambda-exp params (helper body (cons params env))))
+                      (lambda-exp params (helper body (append params env))))
           (proc-app-exp (rator rands)
                         (proc-app-exp (helper rator env)
                                       (map (lambda (subexp) (helper subexp env))
@@ -109,19 +107,15 @@
 
 (define get-lexical-address
   (lambda (id env)
-    (define get-depth
-      (lambda (id lst base-depth)
-        (cond [(null? lst) (eopl:error "unbounded variable " id)]
-              [(memq id (car lst)) (cons base-depth (car lst))]
-              [else
-               (get-depth id (cdr lst) (+ base-depth 1))])))
+
     (define get-index
       (lambda (id lst base-index)
         (if (equal? id (car lst))
             base-index
             (get-index id (cdr lst) (+ 1 base-index)))))
-    (let [(depth-lst (get-depth id env 0))]
-          (lexvar-exp (car depth-lst) (get-index id (cdr depth-lst) 0)))))
+    
+    (let [(index (get-index id env 0))]
+          (lexvar-exp index))))
                
 
 (define let-to-lambda
@@ -145,7 +139,7 @@
       (lit-exp (num) ast-exp)
       (var-exp (id) ast-exp)
       (bool-val (bool) ast-exp)
-      (lexvar-exp (depth position) ast-exp)
+      (lexvar-exp (position) ast-exp)
       (boolean-exp (bool-sign rands) ast-exp)
       (let-exp (name-value-pairs body)
                (let [(params (extract-names name-value-pairs))
@@ -158,12 +152,41 @@
       (if-exp (pred conseq altern) ast-exp)
       (primapp-exp (prim rands) ast-exp))))
 
-(parse-program (proc-app-exp? '(let [(x 5)]
-                  (let [(x 8)
-                        (f (lambda (y z) (* y (+ x z))))
-                        (g (lambda (u) (+ u x)))]
-                    (f (g 3) 17)))))
 
+(define currying-exp
+  (lambda (exp)
+    (cases expression exp
+           (lit-exp (num) exp)
+           (var-exp (id) exp)
+           (bool-val (bool) exp)
+           (lexvar-exp (position) exp)
+           (boolean-exp (sign rands)
+                        (boolean-exp sign (map currying-exp rands)))
+           (let-exp (pairs body) exp)
+           (lambda-exp (params body)
+                       (currying-lambda-exp params body))
+           (proc-app-exp (procedure args)
+                         (proc-app-exp (currying-exp procedure)
+                                       (map currying-exp args)))
+           (if-exp (pred conseq altern)
+                   (if-exp (currying-exp pred)
+                           (currying-exp conseq)
+                           (currying-exp altern)))
+           (primapp-exp (prim rands)
+                        (primapp-exp prim (map currying-exp rands))))))
+
+(define currying-lambda-exp
+  (lambda (params body)
+    (if (or (null? params)
+            (= 1 (length params)))
+        (lambda-exp params body)
+        (lambda-exp (list (car params))
+                    (currying-lambda-exp (cdr params) body)))))
+
+
+(parse-expression '(((lambda (x)
+                   (lambda (y)
+                     (+ x y))) 1) 2))
 
 
                               

@@ -10,7 +10,6 @@
   (var-exp (id symbol?))
   (bool-val (bool boolean?))
   (lexvar-exp
-   (depth number?)
    (position number?))
   (boolean-exp
    (sign boolean-sign?)

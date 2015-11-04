@@ -26,8 +26,8 @@
       (var-exp (id) (eopl:error "var-exp should not appear " var-exp))
       (let-exp (name-value-pairs body)
                (eopl:error "let-exp should not appear " let-exp))
-      (lexvar-exp (depth position)
-                  (apply-nameless-env depth position env))
+      (lexvar-exp (position)
+                  (apply-nameless-env position env))
       (bool-val (bool) bool)
       (boolean-exp (bool-sign rands)
                    (let [(args (eval-rands rands env))]
@@ -37,7 +37,7 @@
                   (closure params
                            body
                            (let [(saved-env (get-saved-env params body env))]
-                             (extendedenv-record saved-env))))
+                             (extendedenv-record env))))
       (proc-app-exp (rator rands)
                     (let [(proc-closure (eval-expression rator env))
                           (args (eval-rands rands env))]
@@ -80,9 +80,6 @@
 (define extract-eval-pair-values
   (lambda (pairs)
     (map (lambda (pair) (cadr pair)) pairs)))
-
-
-
 
 (define eval-rands
   (lambda (rands env)
@@ -148,7 +145,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                                                     ;
 ;                                                     ;
-;            environment (list of vector)             ;
+;            environment (flat env --- list)          ;
 ;                                                     ;
 ;                                                     ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -160,7 +157,7 @@
 
 (define extend-nameless-env
   (lambda (vals env)
-    (cons (list->vector vals) env)))
+    (cons (car vals) env)))
 
  (define get-target-vec
       (lambda (depth lst counter)
@@ -170,25 +167,13 @@
 
 (define get-saved-env
   (lambda (params body env)
-    (let [(free-vars-adds (get-free-var-lexadd body))]
-      (define helper
-        (lambda (free-var-adds collector)
-          (if (null? free-var-adds)
-              collector
-              (let [(lex-add (car free-var-adds))]
-                (cases expression lex-add
-                  (lexvar-exp (depth position)
-                              (if (= depth (length collector)) ; if rib is already incude in closure env
-                                  (helper (cdr free-var-adds) collector)
-                                  (helper (cdr free-var-adds) (cons (get-target-vec (- depth 1) env 0) collector))))
-                  (else
-                   (eopl:error "wrong type get-save-env")))))))
-      (helper free-vars-adds '()))))
+    nil))
 
 (define apply-nameless-env
-  (lambda (depth position env)   
-    (let [(target-vec (get-target-vec depth env 0))]
-      (vector-ref target-vec position))))
+  (lambda (position env)
+    (cond [(null? env) (eopl:error "unbound variable")]
+          [(zero? position) (car env)]
+          [else (apply-nameless-env (- position 1) (cdr env))])))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -215,7 +200,8 @@
 
 
 
-(run '(let [(x 1)
-            (z 3)]
-        (let [(y 2)]
-          (+ x (- z y)))))
+(display (run '(((lambda (x)
+                   (lambda (y)
+                     (+ x y))) 1) 2)))
+
+(newline)

@@ -33,8 +33,8 @@
           (lit-exp (num) collector)
           (var-exp (id) collector)
           (bool-val (bool) collector)
-          (lexvar-exp (depth position)
-                      (if (not (= 0 depth))
+          (lexvar-exp (position)
+                      (if (not (= 0 position))
                           (cons exp collector)
                           collector))
           (boolean-exp (sign rands)
@@ -48,6 +48,9 @@
           (primapp-exp (prim rands)
                        (flat-map (lambda (rand) (helper rand collector)) rands)))))
     (helper exp '())))
+
+
+
 
 
 
