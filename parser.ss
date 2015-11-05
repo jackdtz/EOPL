@@ -47,14 +47,14 @@
 
 (define parse-boolean-exp
   (lambda (exp)
-    (cond [(greater-sign? (car exp))     (list (greater-than-sign (car exp)) 2)]
-          [(less-sign? (car exp))        (list (less-than-sign (car exp)) 2)]
-          [(equal-sign? (car exp))       (list (equal-sign (car exp)) 2)]
-          [(logic-and-sign? (car exp))   (list (logic-and-sign (car exp)) 2)]
-          [(logic-or-sign? (car exp))    (list (logic-or-sign (car exp)) 2)]
-          [(logic-not-sign? (car exp))   (list (logic-not-sign (car exp)) 1)]
-          [(null-sign? (car exp))        (list (check-null-sign (car exp)) 1)]
-          [(zero-sign? (car exp))        (list (check-zero-sign (car exp)) 1)]
+    (cond [(greater-sign? (car exp))                  (list (greater-than-sign (car exp)) 2)]
+          [(less-sign? (car exp))                     (list (less-than-sign (car exp)) 2)]
+          [(equal-sign? (car exp))                    (list (equal-sign (car exp)) 2)]
+          [(logic-and-sign? (car exp))                (list (logic-and-sign (car exp)) 2)]
+          [(logic-or-sign? (car exp))                 (list (logic-or-sign (car exp)) 2)]
+          [(logic-not-sign? (car exp))                (list (logic-not-sign (car exp)) 1)]
+          [(null-sign? (car exp))                     (list (check-null-sign (car exp)) 1)]
+          [(zero-sign? (car exp))                     (list (check-zero-sign (car exp)) 1)]
           [else
            (eopl:error "Unknown boolean expression" exp)]))) 
 
@@ -65,12 +65,12 @@
           [(is-sub? (car prim-exp))		   (list (subtract (car prim-exp)) 1 2)]
           [(is-mul? (car prim-exp))		   (list (multiply (car prim-exp)) 2)]
           [(is-div? (car prim-exp))		   (list (divide (car prim-exp)) 2)]
-          [(add1? (car prim-exp))		     (list (add1 (car prim-exp)) 1)]
-          [(subt1? (car prim-exp))		   (list (subt1 (car prim-exp)) 1)]
-          [(list-op? (car prim-exp)) 	   (list (list-op (car prim-exp)) '())]
-          [(car? (car prim-exp))		     (list (car-op (car prim-exp)) 1)]
-          [(cdr? (car prim-exp))		     (list (cdr-op (car prim-exp)) 1)]
-          [(cons? (car prim-exp))		     (list (cons-op (car prim-exp)) 2)]
+          [(add1? (car prim-exp))		           (list (add1 (car prim-exp)) 1)]
+          [(subt1? (car prim-exp))		           (list (subt1 (car prim-exp)) 1)]
+          [(list-op? (car prim-exp)) 	           (list (list-op (car prim-exp)) '())]
+          [(car? (car prim-exp))		           (list (car-op (car prim-exp)) 1)]
+          [(cdr? (car prim-exp))		           (list (cdr-op (car prim-exp)) 1)]
+          [(cons? (car prim-exp))		           (list (cons-op (car prim-exp)) 2)]
           [else 
            (eopl:error "unknow expression" exp)])))
 
@@ -85,8 +85,9 @@
           (var-exp (id) (get-lexical-address id env))
           (bool-val (bool) ast-exp)
           (lexvar-exp (postion) ast-exp)
-          (boolean-exp (bool-sign rands) (boolean-exp bool-sign
-                                                      (map (lambda (rand) (helper rand env)) rands)))
+          (boolean-exp (bool-sign rands)
+                       (boolean-exp bool-sign
+                                    (map (lambda (rand) (helper rand env)) rands)))
           (let-exp (name-value-pairs body)
                    (eopl:error "let-exp should not exist in lex-add-calculator"))
           (lambda-exp (params body)
