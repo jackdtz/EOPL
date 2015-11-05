@@ -35,6 +35,11 @@
     (let [(c 3)]
       (f c 9))))
 
+(display (parse-program '(let [(x 3)
+                               (y 7)
+                               (z 9)]
+                           (+ x z))))
+
 
 (test factorial-func)
 (test mutual-recursion-test)

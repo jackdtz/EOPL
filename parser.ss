@@ -170,7 +170,8 @@
                            (proc-app-exp (procedure args)
                                          (proc-app-exp  (curried-exp procedure) (map curried-exp args)))
                            (lambda-exp (params body)
-                                       (proc-app-exp (curried-exp procedure) (map curried-exp args)))
+                                       (let [(curried-args (map curried-exp args))]
+                                         (curried-to-nested-pro (curried-exp procedure) curried-args)))
                            (var-exp (id)
                                     (curried-to-nested-pro procedure args))
                            (else
@@ -206,19 +207,8 @@
     
     (cases expression proc-var
       (var-exp (id) (helper proc-var args))
+      (lambda-exp (params body)
+                  (helper proc-var args))
       (else
        (eopl:error "Incorrect type at curried-to-nested-pro")))))
-
-
-(parse-program '(let [(make-even (lambda (pred-1 pred-2 n)
-                      (if (zero? n)
-                          1
-                          (pred-2 pred-2 pred-1 (- n 1)))))
-      (make-odd (lambda (pred-1 pred-2 n)
-                  (if (zero? n)
-                      0
-                      (pred-2 pred-2 pred-1 (- n 1)))))]
-        (let [(odd? (lambda (x) (make-odd make-odd make-even x)))
-              (even? (lambda (x) (make-even make-even make-odd x)))]
-          (odd? 3))))
                       
