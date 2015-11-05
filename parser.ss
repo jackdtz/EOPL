@@ -6,7 +6,7 @@
 
 (define parse-program
   (lambda (prog)
-    (a-program (lex-add-calculator (currying-exp (let-to-lambda (parse-expression prog)))))))
+    (a-program (lex-add-calculator (curried-exp (let-to-lambda (parse-expression prog)))))))
 
 (define parse-expression
   (lambda (exp)
@@ -153,7 +153,7 @@
       (primapp-exp (prim rands) ast-exp))))
 
 
-(define currying-exp
+(define curried-exp
   (lambda (exp)
     (cases expression exp
            (lit-exp (num) exp)
@@ -161,32 +161,64 @@
            (bool-val (bool) exp)
            (lexvar-exp (position) exp)
            (boolean-exp (sign rands)
-                        (boolean-exp sign (map currying-exp rands)))
+                        (boolean-exp sign (map curried-exp rands)))
            (let-exp (pairs body) exp)
            (lambda-exp (params body)
                        (currying-lambda-exp params body))
            (proc-app-exp (procedure args)
-                         (proc-app-exp (currying-exp procedure)
-                                       (map currying-exp args)))
+                         (cases expression procedure
+                           (proc-app-exp (procedure args)
+                                         (proc-app-exp  (curried-exp procedure) (map curried-exp args)))
+                           (lambda-exp (params body)
+                                       (proc-app-exp (curried-exp procedure) (map curried-exp args)))
+                           (var-exp (id)
+                                    (curried-to-nested-pro procedure args))
+                           (else
+                            (eopl:error "Incorrect type at curried-exp"))))
            (if-exp (pred conseq altern)
-                   (if-exp (currying-exp pred)
-                           (currying-exp conseq)
-                           (currying-exp altern)))
+                   (if-exp (curried-exp pred)
+                           (curried-exp conseq)
+                           (curried-exp altern)))
            (primapp-exp (prim rands)
-                        (primapp-exp prim (map currying-exp rands))))))
+                        (primapp-exp prim (map curried-exp rands))))))
 
 (define currying-lambda-exp
   (lambda (params body)
-    (if (or (null? params)
-            (= 1 (length params)))
-        (lambda-exp params body)
-        (lambda-exp (list (car params))
-                    (currying-lambda-exp (cdr params) body)))))
+    (let [(curried-body (curried-exp body))]
+      (define helper
+        (lambda (params curried-body)
+          (if (or (null? params)
+                  (= 1 (length params)))
+              (lambda-exp params curried-body)
+              (lambda-exp (list (car params))
+                          (helper (cdr params) curried-body)))))
+      (helper params curried-body))))
+
+(define curried-to-nested-pro
+  (lambda (proc-var args)
+
+    (define helper
+      (lambda (proc args)
+        (if (< (length args) 2)
+            (proc-app-exp proc args)
+            (helper (proc-app-exp proc (list (car args))) (cdr args)))))
+               
+    
+    (cases expression proc-var
+      (var-exp (id) (helper proc-var args))
+      (else
+       (eopl:error "Incorrect type at curried-to-nested-pro")))))
 
 
-(parse-expression '(((lambda (x)
-                   (lambda (y)
-                     (+ x y))) 1) 2))
-
-
-                              
+(parse-program '(let [(make-even (lambda (pred-1 pred-2 n)
+                      (if (zero? n)
+                          1
+                          (pred-2 pred-2 pred-1 (- n 1)))))
+      (make-odd (lambda (pred-1 pred-2 n)
+                  (if (zero? n)
+                      0
+                      (pred-2 pred-2 pred-1 (- n 1)))))]
+        (let [(odd? (lambda (x) (make-odd make-odd make-even x)))
+              (even? (lambda (x) (make-even make-even make-odd x)))]
+          (odd? 3))))
+                      

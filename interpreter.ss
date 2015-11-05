@@ -45,7 +45,7 @@
                         (closure (ids body env1)
                           (if (not (= (length ids)
                                       (length args)))
-                              (eopl:error "Wrong number of arguments for closure")
+                              (eopl:error "Incorrct number of arguments for closure" (length ids) (car args))
                               (eval-expression body (extend-nameless-env args (eval-environment env1))))))))
       (if-exp (pred conseq altern)
               (if (true? (eval-expression pred env))
@@ -207,6 +207,14 @@
       (newline)
       (read-eval-loop))))
 
-
-
-         
+(run '(let [(make-even (lambda (pred-1 pred-2 n)
+                      (if (zero? n)
+                          1
+                          (pred-2 pred-2 pred-1 (- n 1)))))
+            (make-odd (lambda (pred-1 pred-2 n)
+                        (if (zero? n)
+                            0
+                            (pred-2 pred-2 pred-1 (- n 1)))))]
+        (let [(odd? (lambda (x) (make-odd make-odd make-even x)))
+              (even? (lambda (x) (make-even make-even make-odd x)))]
+          (odd? 3))))

@@ -30,9 +30,15 @@
               (even? (lambda (x) (make-even make-even make-odd x)))]
           (odd? 3))))
 
+(define curried-fun
+  '(let [(f (lambda (x y) (+ x y)))]
+    (let [(c 3)]
+      (f c 9))))
+
 
 (test factorial-func)
 (test mutual-recursion-test)
+(test curried-fun)
 
 
 
