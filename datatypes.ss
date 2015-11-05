@@ -90,7 +90,7 @@
   (empty-env-record
    (empty-lst empty-lst?))
   (extendedenv-record
-   (values (list-of vector?))))
+   (values list?)))
 
 (define scheme-value? (lambda (v) #t))
 (define empty-lst? null?)

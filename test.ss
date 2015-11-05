@@ -28,7 +28,7 @@
                       (pred-2 pred-2 pred-1 (- n 1)))))]
         (let [(odd? (lambda (x) (make-odd make-odd make-even x)))
               (even? (lambda (x) (make-even make-even make-odd x)))]
-          (odd? 4))))
+          (odd? 3))))
 
 
 (test factorial-func)

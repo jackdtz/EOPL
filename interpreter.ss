@@ -159,15 +159,24 @@
   (lambda (vals env)
     (cons (car vals) env)))
 
- (define get-target-vec
-      (lambda (depth lst counter)
-        (if (= counter depth)
-            (car lst)
-            (get-target-vec depth (cdr lst) (+ counter 1)))))
 
 (define get-saved-env
   (lambda (params body env)
-    nil))
+    (let [(free-vars-adds (get-free-var-lexadd body))
+          (max-depth (get-max-depth body))]
+
+      (define helper
+        (lambda (free-vars-adds env-collector)
+          (if (null? free-vars-adds)
+              nil
+              (let [(free-var (caar free-vars-adds))
+                    (depth-count (cdar free-vars-adds))]
+                (cases expression free-var
+                  (lexvar-exp (position)
+                              (cons (apply-nameless-env (- max-depth position) env) env-collector))
+                  (else
+                   (eopl:error "incorrect type in get-saved-env")))))))
+      (helper free-vars-adds '()))))
 
 (define apply-nameless-env
   (lambda (position env)
@@ -200,8 +209,4 @@
 
 
 
-(display (run '(((lambda (x)
-                   (lambda (y)
-                     (+ x y))) 1) 2)))
-
-(newline)
+         

@@ -25,33 +25,77 @@
           [else
            (filter predicate (cdr sequence))])))
 
+
+
+(define (fold-left op initial sequence)
+   (define (iter result rest)
+     (if (null? rest)
+         result
+         (iter (op result (car rest))
+               (cdr rest))))
+   (iter initial sequence))
+
+
 (define get-free-var-lexadd
   (lambda (exp)
     (define helper
-      (lambda (exp collector)
+      (lambda (exp collector depth-counter)
         (cases expression exp
           (lit-exp (num) collector)
           (var-exp (id) collector)
           (bool-val (bool) collector)
           (lexvar-exp (position)
-                      (if (not (= 0 position))
-                          (cons exp collector)
+                      (if (> position depth-counter)
+                          (cons (cons exp depth-counter) collector)
                           collector))
           (boolean-exp (sign rands)
-                       (flat-map (lambda (rand) (helper rand collector)) rands))
+                       (flat-map (lambda (rand) (helper rand collector depth-counter)) rands))
           (let-exp (pairs body) collector)
-          (lambda-exp (params body) collector)
+          (lambda-exp (params body)
+                      (helper body collector (+ 1 depth-counter)))
           (proc-app-exp (procedure args)
-                        (flat-map (lambda (arg) (helper arg collector)) args))
+                        (append (helper procedure collector depth-counter)
+                                (flat-map (lambda (arg) (helper arg collector depth-counter)) args)))
           (if-exp (pred conseq altern)
-                  (flat-map (lambda (sub-exp) (helper sub-exp collector)) (list pred conseq altern)))
+                  (flat-map (lambda (sub-exp) (helper sub-exp collector depth-counter)) (list pred conseq altern)))
           (primapp-exp (prim rands)
-                       (flat-map (lambda (rand) (helper rand collector)) rands)))))
+                       (flat-map (lambda (rand) (helper rand collector depth-counter)) rands)))))
+    (helper exp '() 0)))
+
+(define extract-all-lexvar-exp
+  (lambda (exp)
+    (define helper
+      (lambda (exp collector)
+        (cases expression exp
+          (lexvar-exp (position) (cons position collector))
+          (boolean-exp (sign rands)
+                       (flat-map (lambda (rand) (helper rand collector)) rands))
+          (lambda-exp (params body)
+                      (helper body collector))
+          (proc-app-exp (procedure args)
+                        (append (helper procedure collector)
+                                (flat-map (lambda (arg) (helper arg collector)) args)))
+          (if-exp (pred conseq altern)
+              (flat-map (lambda (sub-exp) (helper sub-exp collector)) (list pred conseq altern)))
+          (primapp-exp (prim rands)
+                       (flat-map (lambda (rand) (helper rand collector)) rands))
+          (else
+           collector))))
     (helper exp '())))
 
+(define max-of-list
+  (lambda (lst)
+    (if (null? lst)
+        #f
+        (fold-left (lambda (e r) (if (> e r) e r))
+                   (car lst)
+                   (cdr lst)))))
+          
 
-
-
+(define get-max-depth
+  (lambda (exp)
+    (let [(all-depth (extract-all-lexvar-exp exp))]
+      (max-of-list all-depth))))
 
 
 
