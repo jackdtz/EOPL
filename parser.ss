@@ -31,6 +31,7 @@
                       (equal? (cadr prim-info) '()))
                   (primapp-exp (car prim-info) (map parse-expression (cdr exp)))
                   (eopl:error "Incorrect number of parameter")))]
+          [(set!-exp? (exp)) (set!-exp (get-setexp-id exp) (get-setexp-rhs exp))]
           [else
            (proc-app-exp (parse-expression (get-proc-lambda exp))
                                              (map parse-expression (get-proc-params exp)))])))
@@ -61,16 +62,16 @@
 
 (define parse-primitive
   (lambda (prim-exp)
-    (cond [(is-add? (car prim-exp))		               `( ,(add (car prim-exp))            2)]
-          [(is-sub? (car prim-exp))		               `( ,(subtract (car prim-exp))     1 2)]
-          [(is-mul? (car prim-exp))		               `( ,(multiply (car prim-exp))       2)]
-          [(is-div? (car prim-exp))		               `( ,(divide (car prim-exp))         2)]
-          [(add1? (car prim-exp))		                 `( ,(add1 (car prim-exp))           1)]
-          [(subt1? (car prim-exp))		               `( ,(subt1 (car prim-exp))          1)]
-          [(list-op? (car prim-exp)) 	               `( ,(list-op (car prim-exp))      '())]
-          [(car? (car prim-exp))		                 `( ,(car-op (car prim-exp))         1)]
-          [(cdr? (car prim-exp))		                 `( ,(cdr-op (car prim-exp))         1)]
-          [(cons? (car prim-exp))		                 `( ,(cons-op (car prim-exp))        2)]
+    (cond [(is-add? (car prim-exp))                   `( ,(add (car prim-exp))            2)]
+          [(is-sub? (car prim-exp))                   `( ,(subtract (car prim-exp))     1 2)]
+          [(is-mul? (car prim-exp))                   `( ,(multiply (car prim-exp))       2)]
+          [(is-div? (car prim-exp))                   `( ,(divide (car prim-exp))         2)]
+          [(add1? (car prim-exp))                     `( ,(add1 (car prim-exp))           1)]
+          [(subt1? (car prim-exp))                    `( ,(subt1 (car prim-exp))          1)]
+          [(list-op? (car prim-exp))                  `( ,(list-op (car prim-exp))      '())]
+          [(car? (car prim-exp))                      `( ,(car-op (car prim-exp))         1)]
+          [(cdr? (car prim-exp))                      `( ,(cdr-op (car prim-exp))         1)]
+          [(cons? (car prim-exp))                     `( ,(cons-op (car prim-exp))        2)]
           [else 
            (eopl:error "unknow expression" exp)])))
 

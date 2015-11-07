@@ -27,6 +27,9 @@
     (predicate expression?)
     (consequence expression?)
     (alternative expression?))
+  (set!-exp
+   (id symbol?)
+   (rhs-exp expression?))
   (primapp-exp
    (prim primitive?)
    (rands (list-of expression?))))
@@ -113,6 +116,27 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define-datatype reference reference?
+  (a-ref
+   (position integer?)
+   (vec vector?)))
+
+(define dereference
+  (lambda (ref)
+    (cases reference ref
+      (a-ref (pos vec)
+             (vector-ref vec pos)))))
+
+(define set!-reference
+  (lambda (ref value)
+    (cases reference ref
+      (a-ref (pos vec)
+             (vector-set! vec pos value)))))
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-datatype primitive primitive?
   (add (sign is-add?))
@@ -232,8 +256,12 @@
 (define get-proc-lambda car)
 (define get-proc-params cdr)
 
-(proc-app-exp? '(let [(x 5)]
-                  (let [(x 8)
-                        (f (lambda (y z) (* y (+ x z))))
-                        (g (lambda (u) (+ u x)))]
-                    (f (g 3) 17))))
+
+(define set!-exp?
+  (lambda (exp)
+    (and (equal? (car exp) 'set!)
+         (= (length exp) 3))))
+
+(define get-setexp-id cadr)
+(define get-setexp-rhs caddr)
+  

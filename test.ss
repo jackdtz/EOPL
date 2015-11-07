@@ -36,9 +36,8 @@
       (f c 9))))
 
 (display (parse-program '(let [(x 3)
-                               (y 7)
-                               (z 9)]
-                           (+ x z))))
+                               (y 7)]
+                           (+ x y))))
 
 
 (test factorial-func)
