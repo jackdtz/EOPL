@@ -3,15 +3,12 @@
 (#%provide (all-defined))
 
 (define-datatype program program?
-  (a-program (exp expression?)))
+  (a-form (form form?)))
 
 (define-datatype expression expression?
   (lit-exp (datum number?))
   (var-exp (id symbol?))
   (bool-val (bool boolean?))
-  (lexvar-exp
-   (depth number?)
-   (position number?))
   (boolean-exp
    (sign boolean-sign?)
    (rands (list-of expression?)))
@@ -38,7 +35,15 @@
     (exp-list (list-of expression?)))
   (primapp-exp
    (prim primitive?)
-   (rands (list-of expression?))))
+   (rands (list-of expression?)))
+  (lexvar-exp
+   (depth number?)
+   (position number?))
+  (freevar-exp
+   (id symbol?)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 
 
@@ -140,6 +145,24 @@
     (cases reference ref
       (a-ref (position vec)
              (vector-set! vec position val)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-datatype form form?
+  (define-exp
+    (id symbol?)
+    (exp expression?))
+  (a-exp
+   (exp expression?)))
+
+(define define-exp?
+  (lambda (exp)
+    (and (equal? (car exp) 'define)
+         (= (length exp) 3))))
+
+(define get-define-id cadr)
+(define get-define-body caddr)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

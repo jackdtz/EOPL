@@ -5,7 +5,17 @@
 
 (define parse-program
   (lambda (prog)
-    (a-program (lex-add-calculator (let-to-lambda (parse-expression prog))))))
+    (a-form (parse-form prog))))
+
+
+(define parse-form
+  (lambda (form)
+    (cond [(define-exp? form) (define-exp
+                                (get-define-id form)
+                                (lex-add-calculator (let-to-lambda (parse-expression (get-define-body form)))))]
+          [else
+           (a-exp (lex-add-calculator (let-to-lambda (parse-expression form))))])))
+          
 
 (define parse-expression
   (lambda (exp)
@@ -18,9 +28,9 @@
           [(let-exp? exp) (let-exp (parse-let-pairs (get-name-val-pairs exp))
                                    (parse-expression (get-let-body exp)))]
 ;          [(letrec-exp? exp) (let-exp (parse-let-pairs (get-name-val-pairs exp))
- ;                                  (parse-expression (get-let-body exp)))]
+;                                  (parse-expression (get-let-body exp)))]
           [(lambda-exp? exp) (lambda-exp (get-lambda-params exp)
-                                         (parse-expression (get-lambda-body exp)))]
+                                         (parse-expression (get-lambda-body exp)))]          
           [(boolean-exp? exp)
            (let [(bool-info (parse-boolean-exp exp))]
              (if (memq (length (cdr exp)) (cdr bool-info))
@@ -88,6 +98,7 @@
           (var-exp (id) (get-lexical-address id env))
           (bool-val (bool) ast-exp)
           (lexvar-exp (depth postion) ast-exp)
+          (freevar-exp (id) ast-exp)
           (boolean-exp (bool-sign rands)
                        (boolean-exp bool-sign
                                     (map (lambda (rand) (helper rand env)) rands)))
@@ -118,9 +129,11 @@
 
     (define get-depth-frame
       (lambda (id lst base-index)
-        (if (memq id (car lst))
-            (cons base-index (car lst))
-            (get-depth-frame id (cdr lst) (+ 1 base-index)))))
+        
+        (cond [(null? lst) (cons #f (freevar-exp id))]
+              [(memq id (car lst)) (cons base-index (car lst))]
+              [else
+               (get-depth-frame id (cdr lst) (+ 1 base-index))])))
 
     (define get-position
       (lambda (symbol frame base-index)
@@ -129,9 +142,11 @@
             (get-position symbol (cdr frame) (+ 1 base-index)))))
     
     (let [(frame-info (get-depth-frame id env 0))]
-      (let [(depth (car frame-info))
-            (frame (cdr frame-info))]
-        (lexvar-exp depth (get-position id frame 0))))))
+      (if (not (equal? (car frame-info) #f))
+          (let [(depth (car frame-info))
+                (frame (cdr frame-info))]
+            (lexvar-exp depth (get-position id frame 0)))
+          (cdr frame-info)))))
                
 
 (define let-to-lambda
@@ -155,7 +170,8 @@
       (lit-exp (num) ast-exp)
       (var-exp (id) ast-exp)
       (bool-val (bool) ast-exp)
-      (lexvar-exp (depth position) ast-exp)
+      (lexvar-exp (depth postion) ast-exp)
+      (freevar-exp (id) ast-exp)
       (boolean-exp (bool-sign rands) ast-exp)
       (let-exp (name-value-pairs body)
                (let [(params (extract-names name-value-pairs))
@@ -173,13 +189,5 @@
       (primapp-exp (prim rands) (primapp-exp prim (map let-to-lambda rands))))))
 
 
-
-
-(parse-program '(let [(x 1)
-            (y 3)]
-        (let [(a 100)]
-          (let [(z 9)]
-            (begin (+ x y)
-                   (- a z))))))
 
                       

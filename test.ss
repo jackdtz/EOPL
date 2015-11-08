@@ -35,14 +35,17 @@
     (let [(c 3)]
       (f c 9))))
 
-(display (parse-program '(let [(x 3)
-                               (y 7)]
-                           (+ x y))))
+(define test-set!
+  '(let [(x 1)
+            (y 3)]
+            (begin (set! x 100)
+                   x)))
 
 
 (test factorial-func)
 (test mutual-recursion-test)
 (test curried-fun)
+(test test-set!)
 
 
 

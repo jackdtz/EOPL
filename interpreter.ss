@@ -15,9 +15,16 @@
 
 (define eval-program
   (lambda (prog)
-    (cases program  prog
-      (a-program (body)
-                 (eval-expression body (empty-nameless-env))))))
+    (cases program prog
+      (a-form (a-form)
+              (cases form a-form
+                (a-exp (body)
+                       (eval-expression body (empty-nameless-env)))
+                (define-exp (id body)
+                  (let [(search-res-vec (contains? id global-env))]
+                    (if search-res-vec
+                        (vector-set! search-res-vec 1 (eval-expression body (empty-nameless-env)))
+                        (extend-global-env id (eval-expression body (empty-nameless-env)) global-env)))))))))
 
 (define eval-expression
   (lambda (exp env)
@@ -28,6 +35,7 @@
                (eopl:error "let-exp should not appear " let-exp))
       (lexvar-exp (depth position)
                   (apply-nameless-env depth position env))
+      (freevar-exp (id) (apply-global-env id))           
       (set!-exp (id rhs-exp)
                 (cases expression id
                   (lexvar-exp (depth position)
@@ -171,8 +179,25 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(define global-env '())
 
+(define extend-global-env
+  (lambda (id value env)
+    (set! global-env (cons (vector id value) env))))
 
+(define contains?
+  (lambda (id env)
+    (cond [(null? env) #f]
+          [(equal? id (vector-ref (car env) 0)) (car env)]
+          [else
+           (contains? id (cdr env))])))
+  
+(define apply-global-env
+  (lambda (id)
+    (let [(res (contains? id global-env))]
+      (if res
+          (vector-ref res 1)
+          (eopl:error id " is undefined")))))
 
 (define empty-nameless-env
   (lambda ()
@@ -248,8 +273,5 @@
       (newline)
       (read-eval-loop))))
 
-(run '(let [(x 1)
-            (y 3)]
-            (begin (set! x 100)
-                   x)))
 
+(read-eval-loop)
