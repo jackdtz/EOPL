@@ -3,10 +3,9 @@
 (#%require "datatypes.ss")
 (#%provide (all-defined))
 
-
 (define parse-program
   (lambda (prog)
-    (a-program (lex-add-calculator (curried-exp (let-to-lambda (parse-expression prog)))))))
+    (a-program (lex-add-calculator (let-to-lambda (parse-expression prog))))))
 
 (define parse-expression
   (lambda (exp)
@@ -18,6 +17,8 @@
                                  (parse-expression (get-altern exp)))]
           [(let-exp? exp) (let-exp (parse-let-pairs (get-name-val-pairs exp))
                                    (parse-expression (get-let-body exp)))]
+;          [(letrec-exp? exp) (let-exp (parse-let-pairs (get-name-val-pairs exp))
+ ;                                  (parse-expression (get-let-body exp)))]
           [(lambda-exp? exp) (lambda-exp (get-lambda-params exp)
                                          (parse-expression (get-lambda-body exp)))]
           [(boolean-exp? exp)
@@ -28,10 +29,10 @@
           [(primitive-exp? exp)
            	(let [(prim-info (parse-primitive exp))]
               (if (or (memq (length (cdr exp)) (cdr prim-info))
-                      (equal? (cadr prim-info) '()))
+                      (equal? (cadr prim-info) 'inf))
                   (primapp-exp (car prim-info) (map parse-expression (cdr exp)))
                   (eopl:error "Incorrect number of parameter")))]
-          [(set!-exp? (exp)) (set!-exp (get-setexp-id exp) (get-setexp-rhs exp))]
+          [(set!-exp? exp) (set!-exp (parse-expression (get-setexp-id exp)) (parse-expression (get-setexp-rhs exp)))]
           [else
            (proc-app-exp (parse-expression (get-proc-lambda exp))
                                              (map parse-expression (get-proc-params exp)))])))
@@ -68,7 +69,7 @@
           [(is-div? (car prim-exp))                   `( ,(divide (car prim-exp))         2)]
           [(add1? (car prim-exp))                     `( ,(add1 (car prim-exp))           1)]
           [(subt1? (car prim-exp))                    `( ,(subt1 (car prim-exp))          1)]
-          [(list-op? (car prim-exp))                  `( ,(list-op (car prim-exp))      '())]
+          [(list-op? (car prim-exp))                  `( ,(list-op (car prim-exp))      inf)]
           [(car? (car prim-exp))                      `( ,(car-op (car prim-exp))         1)]
           [(cdr? (car prim-exp))                      `( ,(cdr-op (car prim-exp))         1)]
           [(cons? (car prim-exp))                     `( ,(cons-op (car prim-exp))        2)]
@@ -85,14 +86,16 @@
           (lit-exp (num) ast-exp)
           (var-exp (id) (get-lexical-address id env))
           (bool-val (bool) ast-exp)
-          (lexvar-exp (postion) ast-exp)
+          (lexvar-exp (depth postion) ast-exp)
           (boolean-exp (bool-sign rands)
                        (boolean-exp bool-sign
                                     (map (lambda (rand) (helper rand env)) rands)))
           (let-exp (name-value-pairs body)
                    (eopl:error "let-exp should not exist in lex-add-calculator"))
+          (set!-exp (id rhs-exp)
+                    (set!-exp (helper id env) (helper rhs-exp env)))
           (lambda-exp (params body)
-                      (lambda-exp params (helper body (append params env))))
+                      (lambda-exp params (helper body (cons params env))))
           (proc-app-exp (rator rands)
                         (proc-app-exp (helper rator env)
                                       (map (lambda (subexp) (helper subexp env))
@@ -110,14 +113,22 @@
 (define get-lexical-address
   (lambda (id env)
 
-    (define get-index
+    (define get-depth-frame
       (lambda (id lst base-index)
-        (if (equal? id (car lst))
+        (if (memq id (car lst))
+            (cons base-index (car lst))
+            (get-depth-frame id (cdr lst) (+ 1 base-index)))))
+
+    (define get-position
+      (lambda (symbol frame base-index)
+        (if (equal? symbol (car frame))
             base-index
-            (get-index id (cdr lst) (+ 1 base-index)))))
+            (get-position symbol (cdr frame) (+ 1 base-index)))))
     
-    (let [(index (get-index id env 0))]
-          (lexvar-exp index))))
+    (let [(frame-info (get-depth-frame id env 0))]
+      (let [(depth (car frame-info))
+            (frame (cdr frame-info))]
+        (lexvar-exp depth (get-position id frame 0))))))
                
 
 (define let-to-lambda
@@ -141,7 +152,7 @@
       (lit-exp (num) ast-exp)
       (var-exp (id) ast-exp)
       (bool-val (bool) ast-exp)
-      (lexvar-exp (position) ast-exp)
+      (lexvar-exp (depth position) ast-exp)
       (boolean-exp (bool-sign rands) ast-exp)
       (let-exp (name-value-pairs body)
                (let [(params (extract-names name-value-pairs))
@@ -149,41 +160,46 @@
                  (let [(new-body (let-to-lambda body))]
                    (proc-app-exp (lambda-exp params new-body)
                                  args))))
-      (lambda-exp (params body) ast-exp)
-      (proc-app-exp (rator rands) ast-exp)
-      (if-exp (pred conseq altern) ast-exp)
-      (primapp-exp (prim rands) ast-exp))))
+      (set!-exp (id rhs-exp) (set!-exp id (let-to-lambda rhs-exp)))
+      (lambda-exp (params body) (lambda-exp params (let-to-lambda body)))
+      (proc-app-exp (rator rands) (proc-app-exp (let-to-lambda rator) (map let-to-lambda rands)))
+      (if-exp (pred conseq altern) (if-exp (let-to-lambda pred)
+                                           (let-to-lambda conseq)
+                                           (let-to-lambda altern)))
+      (primapp-exp (prim rands) (primapp-exp prim (map let-to-lambda rands))))))
 
 
 (define curried-exp
   (lambda (exp)
     (cases expression exp
-           (lit-exp (num) exp)
-           (var-exp (id) exp)
-           (bool-val (bool) exp)
-           (lexvar-exp (position) exp)
-           (boolean-exp (sign rands)
-                        (boolean-exp sign (map curried-exp rands)))
-           (let-exp (pairs body) exp)
-           (lambda-exp (params body)
-                       (currying-lambda-exp params body))
-           (proc-app-exp (procedure args)
-                         (cases expression procedure
-                           (proc-app-exp (procedure args)
-                                         (proc-app-exp  (curried-exp procedure) (map curried-exp args)))
-                           (lambda-exp (params body)
-                                       (let [(curried-args (map curried-exp args))]
-                                         (curried-to-nested-pro (curried-exp procedure) curried-args)))
-                           (var-exp (id)
-                                    (curried-to-nested-pro procedure args))
-                           (else
-                            (eopl:error "Incorrect type at curried-exp"))))
-           (if-exp (pred conseq altern)
-                   (if-exp (curried-exp pred)
-                           (curried-exp conseq)
-                           (curried-exp altern)))
-           (primapp-exp (prim rands)
-                        (primapp-exp prim (map curried-exp rands))))))
+      (lit-exp (num) exp)
+      (var-exp (id) exp)
+      (bool-val (bool) exp)
+      (lexvar-exp (depth position) exp)
+      (boolean-exp (sign rands)
+                   (boolean-exp sign (map curried-exp rands)))
+      (let-exp (pairs body) exp)
+      (lambda-exp (params body)
+                  (currying-lambda-exp params body))
+      (set!-exp (id rhs-exp)
+                (set!-exp id (curried-exp rhs-exp)))
+      (proc-app-exp (procedure args)
+                    (cases expression procedure
+                      (proc-app-exp (procedure args)
+                                    (proc-app-exp  (curried-exp procedure) (map curried-exp args)))
+                      (lambda-exp (params body)
+                                  (let [(curried-args (map curried-exp args))]
+                                    (curried-to-nested-pro (curried-exp procedure) curried-args)))
+                      (var-exp (id)
+                               (curried-to-nested-pro procedure args))
+                      (else
+                       (eopl:error "Incorrect type at curried-exp"))))
+      (if-exp (pred conseq altern)
+              (if-exp (curried-exp pred)
+                      (curried-exp conseq)
+                      (curried-exp altern)))
+      (primapp-exp (prim rands)
+                   (primapp-exp prim (map curried-exp rands))))))
 
 (define currying-lambda-exp
   (lambda (params body)
@@ -213,4 +229,11 @@
                   (helper proc-var args))
       (else
        (eopl:error "Incorrect type at curried-to-nested-pro")))))
+
+(parse-program '(let [(x 1)
+                      (y 2)]
+                  (let [(z 3)]
+                    (let [(a 9)]
+                      (+ x (- a y))))))
+
                       

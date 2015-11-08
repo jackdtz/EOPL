@@ -10,6 +10,7 @@
   (var-exp (id symbol?))
   (bool-val (bool boolean?))
   (lexvar-exp
+   (depth number?)
    (position number?))
   (boolean-exp
    (sign boolean-sign?)
@@ -17,6 +18,9 @@
   (let-exp
    (pairs (list-of id-exp-pair?))
    (body expression?))
+;  (letrec-exp
+;   (pairs (list-of id-exp-pair?))
+;   (body expression?))
   (lambda-exp
     (params (list-of symbol?))
     (body expression?))
@@ -28,7 +32,7 @@
     (consequence expression?)
     (alternative expression?))
   (set!-exp
-   (id symbol?)
+   (id expression?)
    (rhs-exp expression?))
   (primapp-exp
    (prim primitive?)
@@ -93,7 +97,7 @@
   (empty-env-record
    (empty-lst empty-lst?))
   (extendedenv-record
-   (values list?)))
+   (values (list-of vector?))))
 
 (define scheme-value? (lambda (v) #t))
 (define empty-lst? null?)
@@ -116,6 +120,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
 (define-datatype reference reference?
   (a-ref
    (position integer?)
@@ -124,14 +129,16 @@
 (define dereference
   (lambda (ref)
     (cases reference ref
-      (a-ref (pos vec)
-             (vector-ref vec pos)))))
+      (a-ref (position vec)
+             (vector-ref vec position)))))
 
-(define set!-reference
-  (lambda (ref value)
+(define setref!
+  (lambda (ref val)
     (cases reference ref
-      (a-ref (pos vec)
-             (vector-set! vec pos value)))))
+      (a-ref (position vec)
+             (vector-set! vec position val)))))
+
+
 
 
 
@@ -236,6 +243,12 @@
   (lambda (exp)
     (and (equal? (car exp) 'let)
          (= 3 (length exp)))))
+
+(define letrec-exp?
+  (lambda (exp)
+    (and (equal? (car exp) 'letrec)
+         (= 3 (length exp)))))
+
 
 (define lambda-exp?
   (lambda (exp)

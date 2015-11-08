@@ -26,8 +26,14 @@
       (var-exp (id) (eopl:error "var-exp should not appear " var-exp))
       (let-exp (name-value-pairs body)
                (eopl:error "let-exp should not appear " let-exp))
-      (lexvar-exp (position)
-                  (apply-nameless-env position env))
+      (lexvar-exp (depth position)
+                  (apply-nameless-env depth position env))
+      (set!-exp (id rhs-exp)
+                (cases expression id
+                  (lexvar-exp (depth position)
+                              (set!-nameless-env position (eval-expression rhs-exp env) env))
+                  (else
+                   (eopl:error "id should be lexical address" id))))
       (bool-val (bool) bool)
       (boolean-exp (bool-sign rands)
                    (let [(args (eval-rands rands env))]
@@ -145,10 +151,80 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                                                     ;
 ;                                                     ;
-;            environment (flat env --- list)          ;
+;            environment (list of vector)             ;
 ;                                                     ;
 ;                                                     ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(define get-free-var-lexadd
+  (lambda (exp)
+    (define helper
+      (lambda (exp collector depth-counter)
+        (cases expression exp
+          (lit-exp (num) collector)
+          (var-exp (id) collector)
+          (bool-val (bool) collector)
+          (lexvar-exp (depth position)
+                      (if (> depth depth-counter)
+                          (cons (cons exp depth-counter) collector)
+                          collector))
+          (boolean-exp (sign rands)
+                       (flat-map (lambda (rand) (helper rand collector depth-counter)) rands))
+          (let-exp (pairs body) collector)
+          (set!-exp (id rhs-exp)
+                    (flat-map (lambda (rand) (helper rand collector depth-counter)) (list id rhs-exp)))       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          (lambda-exp (params body)
+                      (helper body collector (+ 1 depth-counter)))
+          (proc-app-exp (procedure args)
+                        (append (helper procedure collector depth-counter)
+                                (flat-map (lambda (arg) (helper arg collector depth-counter)) args)))
+          (if-exp (pred conseq altern)
+                  (flat-map (lambda (sub-exp) (helper sub-exp collector depth-counter)) (list pred conseq altern)))
+          (primapp-exp (prim rands)
+                       (flat-map (lambda (rand) (helper rand collector depth-counter)) rands)))))
+    (helper exp '() 0)))
+
+(define extract-all-lexvar-exp
+  (lambda (exp)
+    (define helper
+      (lambda (exp collector)
+        (cases expression exp
+          (lexvar-exp (depth position) (cons exp collector))
+          (boolean-exp (sign rands)
+                       (flat-map (lambda (rand) (helper rand collector)) rands))
+          (lambda-exp (params body)
+                      (helper body collector))
+          (proc-app-exp (procedure args)
+                        (append (helper procedure collector)
+                                (flat-map (lambda (arg) (helper arg collector)) args)))
+          (if-exp (pred conseq altern)
+              (flat-map (lambda (sub-exp) (helper sub-exp collector)) (list pred conseq altern)))
+          (primapp-exp (prim rands)
+                       (flat-map (lambda (rand) (helper rand collector)) rands))
+          (else
+           collector))))
+    (helper exp '())))
+
+(define max-of-list
+  (lambda (lst)
+    (if (null? lst)
+        #f
+        (fold-left (lambda (e r) (if (> e r) e r))
+                   (car lst)
+                   (cdr lst)))))
+          
+
+(define get-max-depth
+  (lambda (exp)
+    (let [(all-lex-add (extract-all-lexvar-exp exp))]
+      (max-of-list
+       (map (lambda (lex-add)
+              (cases expression lex-add
+                (lexvar-exp (depth position) depth)
+                (else
+                 (eopl:error "Incorrect type in get-max-depth"))))
+            all-lex-add)))))
 
 
 (define empty-nameless-env
@@ -157,7 +233,7 @@
 
 (define extend-nameless-env
   (lambda (vals env)
-    (cons (car vals) env)))
+    (cons (list->vector vals) env)))
 
 
 (define get-saved-env
@@ -169,20 +245,35 @@
         (lambda (free-vars-adds env-collector)
           (if (null? free-vars-adds)
               nil
-              (let [(free-var (caar free-vars-adds))
+              (let [(free-var-add (caar free-vars-adds))
                     (depth-count (cdar free-vars-adds))]
-                (cases expression free-var
-                  (lexvar-exp (position)
-                              (cons (apply-nameless-env (- max-depth position) env) env-collector))
+                (cases expression free-var-add
+                  (lexvar-exp (depth position)
+                              (if (not (< (length env-collector) (+ 1 (- max-depth depth))))          ; test if the variable is already include in the list
+                                  (helper (cdr free-vars-adds) env-collector)
+                                  (helper (cdr free-vars-adds) (cons (get-env-frame (- max-depth depth) env) env-collector))))
                   (else
                    (eopl:error "incorrect type in get-saved-env")))))))
       (helper free-vars-adds '()))))
 
+(define get-env-frame
+  (lambda (depth env)
+    (cond [(null? env) (eopl:error "empty env in get-env-frame func")]
+          [(zero? depth) (car env)]
+          [else (get-env-frame (- depth 1) env)])))
+
 (define apply-nameless-env
-  (lambda (position env)
+  (lambda (depth position env)
     (cond [(null? env) (eopl:error "unbound variable")]
-          [(zero? position) (car env)]
-          [else (apply-nameless-env (- position 1) (cdr env))])))
+          [(zero? depth) (vector-ref (car env) position)]
+          [else (apply-nameless-env (- depth 1) position (cdr env))])))
+
+(define set!-nameless-env
+  (lambda (position new-value env)
+    (let [(vec-env (list->vector env))]
+      (begin (vector-set! vec-env position new-value)           
+             (set! env (vector->list vec-env))
+             new-value))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -206,3 +297,10 @@
       (write (eval-program (parse-program (read))))
       (newline)
       (read-eval-loop))))
+
+(run '(let [(x 1)
+            (y 3)]
+        (let [(a 100)]
+          (let [(z 9)]
+            (+ x y)))))
+
