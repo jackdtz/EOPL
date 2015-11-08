@@ -44,13 +44,15 @@
           (lit-exp (num) collector)
           (var-exp (id) collector)
           (bool-val (bool) collector)
-          (lexvar-exp (position)
-                      (if (> position depth-counter)
+          (lexvar-exp (depth position)
+                      (if (> depth depth-counter)
                           (cons (cons exp depth-counter) collector)
                           collector))
           (boolean-exp (sign rands)
                        (flat-map (lambda (rand) (helper rand collector depth-counter)) rands))
           (let-exp (pairs body) collector)
+          (set!-exp (id rhs-exp)
+                    (flat-map (lambda (rand) (helper rand collector depth-counter)) (list id rhs-exp)))       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           (lambda-exp (params body)
                       (helper body collector (+ 1 depth-counter)))
           (proc-app-exp (procedure args)
@@ -67,7 +69,7 @@
     (define helper
       (lambda (exp collector)
         (cases expression exp
-          (lexvar-exp (position) (cons position collector))
+          (lexvar-exp (depth position) (cons exp collector))
           (boolean-exp (sign rands)
                        (flat-map (lambda (rand) (helper rand collector)) rands))
           (lambda-exp (params body)
@@ -94,9 +96,11 @@
 
 (define get-max-depth
   (lambda (exp)
-    (let [(all-depth (extract-all-lexvar-exp exp))]
-      (max-of-list all-depth))))
-
-
-
-
+    (let [(all-lex-add (extract-all-lexvar-exp exp))]
+      (max-of-list
+       (map (lambda (lex-add)
+              (cases expression lex-add
+                (lexvar-exp (depth position) depth)
+                (else
+                 (eopl:error "Incorrect type in get-max-depth"))))
+            all-lex-add)))))
