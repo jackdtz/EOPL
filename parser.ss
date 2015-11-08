@@ -33,6 +33,7 @@
                   (primapp-exp (car prim-info) (map parse-expression (cdr exp)))
                   (eopl:error "Incorrect number of parameter")))]
           [(set!-exp? exp) (set!-exp (parse-expression (get-setexp-id exp)) (parse-expression (get-setexp-rhs exp)))]
+          [(begin-exp? exp) (begin-exp (map parse-expression (get-exp-sequence exp)))]
           [else
            (proc-app-exp (parse-expression (get-proc-lambda exp))
                                              (map parse-expression (get-proc-params exp)))])))
@@ -94,6 +95,8 @@
                    (eopl:error "let-exp should not exist in lex-add-calculator"))
           (set!-exp (id rhs-exp)
                     (set!-exp (helper id env) (helper rhs-exp env)))
+          (begin-exp (exp-sequence)
+                     (begin-exp (map (lambda (sub-exp) (helper sub-exp env)) exp-sequence)))
           (lambda-exp (params body)
                       (lambda-exp params (helper body (cons params env))))
           (proc-app-exp (rator rands)
@@ -161,6 +164,7 @@
                    (proc-app-exp (lambda-exp params new-body)
                                  args))))
       (set!-exp (id rhs-exp) (set!-exp id (let-to-lambda rhs-exp)))
+      (begin-exp (exp-sequence) (begin-exp (map let-to-lambda exp-sequence)))
       (lambda-exp (params body) (lambda-exp params (let-to-lambda body)))
       (proc-app-exp (rator rands) (proc-app-exp (let-to-lambda rator) (map let-to-lambda rands)))
       (if-exp (pred conseq altern) (if-exp (let-to-lambda pred)
@@ -169,71 +173,13 @@
       (primapp-exp (prim rands) (primapp-exp prim (map let-to-lambda rands))))))
 
 
-(define curried-exp
-  (lambda (exp)
-    (cases expression exp
-      (lit-exp (num) exp)
-      (var-exp (id) exp)
-      (bool-val (bool) exp)
-      (lexvar-exp (depth position) exp)
-      (boolean-exp (sign rands)
-                   (boolean-exp sign (map curried-exp rands)))
-      (let-exp (pairs body) exp)
-      (lambda-exp (params body)
-                  (currying-lambda-exp params body))
-      (set!-exp (id rhs-exp)
-                (set!-exp id (curried-exp rhs-exp)))
-      (proc-app-exp (procedure args)
-                    (cases expression procedure
-                      (proc-app-exp (procedure args)
-                                    (proc-app-exp  (curried-exp procedure) (map curried-exp args)))
-                      (lambda-exp (params body)
-                                  (let [(curried-args (map curried-exp args))]
-                                    (curried-to-nested-pro (curried-exp procedure) curried-args)))
-                      (var-exp (id)
-                               (curried-to-nested-pro procedure args))
-                      (else
-                       (eopl:error "Incorrect type at curried-exp"))))
-      (if-exp (pred conseq altern)
-              (if-exp (curried-exp pred)
-                      (curried-exp conseq)
-                      (curried-exp altern)))
-      (primapp-exp (prim rands)
-                   (primapp-exp prim (map curried-exp rands))))))
 
-(define currying-lambda-exp
-  (lambda (params body)
-    (let [(curried-body (curried-exp body))]
-      (define helper
-        (lambda (params curried-body)
-          (if (or (null? params)
-                  (= 1 (length params)))
-              (lambda-exp params curried-body)
-              (lambda-exp (list (car params))
-                          (helper (cdr params) curried-body)))))
-      (helper params curried-body))))
-
-(define curried-to-nested-pro
-  (lambda (proc-var args)
-
-    (define helper
-      (lambda (proc args)
-        (if (< (length args) 2)
-            (proc-app-exp proc args)
-            (helper (proc-app-exp proc (list (car args))) (cdr args)))))
-               
-    
-    (cases expression proc-var
-      (var-exp (id) (helper proc-var args))
-      (lambda-exp (params body)
-                  (helper proc-var args))
-      (else
-       (eopl:error "Incorrect type at curried-to-nested-pro")))))
 
 (parse-program '(let [(x 1)
-                      (y 2)]
-                  (let [(z 3)]
-                    (let [(a 9)]
-                      (+ x (- a y))))))
+            (y 3)]
+        (let [(a 100)]
+          (let [(z 9)]
+            (begin (+ x y)
+                   (- a z))))))
 
                       

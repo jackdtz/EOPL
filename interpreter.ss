@@ -31,9 +31,12 @@
       (set!-exp (id rhs-exp)
                 (cases expression id
                   (lexvar-exp (depth position)
-                              (set!-nameless-env position (eval-expression rhs-exp env) env))
+                              (setref! (apply-env-ref depth position env)
+                                       (eval-expression rhs-exp env)))
                   (else
                    (eopl:error "id should be lexical address" id))))
+      (begin-exp (exp-sequence)
+                 (eval-sequence exp-sequence env))
       (bool-val (bool) bool)
       (boolean-exp (bool-sign rands)
                    (let [(args (eval-rands rands env))]
@@ -60,6 +63,17 @@
       (primapp-exp (prim rands)
                    (let [(args (eval-rands rands env))]
                          (apply-primitve prim args))))))
+
+
+
+
+(define eval-sequence
+  (lambda (exp-sequence env)
+    (cond [(null? exp-sequence) (eopl:error "begin expression requires at least one sub-exp" exp-sequence)]
+          [(null? (cdr exp-sequence)) (eval-expression (car exp-sequence) env)]
+          [else
+           (begin (eval-expression (car exp-sequence) env)
+                  (eval-sequence (cdr exp-sequence) env))])))
 
 
 (define eval-environment
@@ -195,18 +209,21 @@
           [(zero? depth) (car env)]
           [else (get-env-frame (- depth 1) env)])))
 
-(define apply-nameless-env
+(define apply-env-ref
   (lambda (depth position env)
     (cond [(null? env) (eopl:error "unbound variable")]
-          [(zero? depth) (vector-ref (car env) position)]
-          [else (apply-nameless-env (- depth 1) position (cdr env))])))
+          [(zero? depth) (a-ref position (car env))]
+          [else (apply-env-ref (- depth 1) position (cdr env))])))
+
+(define apply-nameless-env
+  (lambda (depth position env)
+    (dereference (apply-env-ref depth position env))))
 
 (define set!-nameless-env
-  (lambda (position new-value env)
-    (let [(vec-env (list->vector env))]
-      (begin (vector-set! vec-env position new-value)           
-             (set! env (vector->list vec-env))
-             new-value))))
+  (lambda (depth position new-value env)
+    (let [(frame (get-env-frame depth env))]
+      (begin (vector-set! frame position new-value)
+             1))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -233,7 +250,6 @@
 
 (run '(let [(x 1)
             (y 3)]
-        (let [(a 100)]
-          (let [(z 9)]
-            (+ x y)))))
+            (begin (set! x 100)
+                   x)))
 

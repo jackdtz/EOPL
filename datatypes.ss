@@ -34,6 +34,8 @@
   (set!-exp
    (id expression?)
    (rhs-exp expression?))
+  (begin-exp
+    (exp-list (list-of expression?)))
   (primapp-exp
    (prim primitive?)
    (rands (list-of expression?))))
@@ -126,6 +128,7 @@
    (position integer?)
    (vec vector?)))
 
+
 (define dereference
   (lambda (ref)
     (cases reference ref
@@ -137,11 +140,6 @@
     (cases reference ref
       (a-ref (position vec)
              (vector-set! vec position val)))))
-
-
-
-
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -277,4 +275,10 @@
 
 (define get-setexp-id cadr)
 (define get-setexp-rhs caddr)
-  
+
+(define begin-exp?
+  (lambda (exp)
+    (and (equal? (car exp) 'begin)
+         (> (length (cdr exp)) 1))))
+
+(define get-exp-sequence cdr)
