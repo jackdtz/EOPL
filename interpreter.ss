@@ -24,7 +24,9 @@
                   (let [(search-res-vec (contains? id global-env))]
                     (if search-res-vec
                         (begin (vector-set! search-res-vec 1 (eval-expression body (empty-nameless-env))) nil)
-                        (begin (extend-global-env id (eval-expression body (empty-nameless-env)) global-env) nil)))))))))
+                        (begin (extend-global-env id 0 global-env)
+                               (extend-global-env id (eval-expression body (empty-nameless-env)) global-env)
+                               nil)))))))))
 
 (define eval-expression
   (lambda (exp env)
@@ -276,3 +278,9 @@
             (begin (write res)
                    (newline)
                    (read-eval-loop)))))))
+
+(run '(define f
+        (lambda (x)
+          (if (= x 1)
+              1
+              (* x (f (- x 1)))))))

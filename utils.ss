@@ -49,7 +49,7 @@
                           (cons (cons exp depth-counter) collector)
                           collector))
           (freevar-exp (id)
-                       (cons id collector))
+                       collector)
           (boolean-exp (sign rands)
                        (flat-map (lambda (rand) (helper rand collector depth-counter)) rands))
           (let-exp (pairs body) collector)
