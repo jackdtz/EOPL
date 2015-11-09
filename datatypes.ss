@@ -15,9 +15,9 @@
   (let-exp
    (pairs (list-of id-exp-pair?))
    (body expression?))
-;  (letrec-exp
-;   (pairs (list-of id-exp-pair?))
-;   (body expression?))
+  (letrec-exp
+   (pairs (list-of id-exp-pair?))
+   (body expression?))
   (lambda-exp
     (params (list-of symbol?))
     (body expression?))
@@ -248,17 +248,9 @@
 
 (define primitive-exp?
   (lambda (exp)
-    (let [(prim-op (car exp))]
-      (or (equal? prim-op '+)
-          (equal? prim-op '-)
-          (equal? prim-op '*)
-          (equal? prim-op '/)
-          (equal? prim-op 'add1)
-          (equal? prim-op 'subt1)
-          (equal? prim-op 'cons)
-          (equal? prim-op 'list)
-          (equal? prim-op 'car)
-          (equal? prim-op 'cdr)))))
+    (let [(prim-op (car exp))
+          (op-list '(+ - * / add1 subt1 cons list car cdr))]
+      (if (memq prim-op op-list) #t #f))))
 
 (define let-exp?
   (lambda (exp)

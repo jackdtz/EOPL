@@ -53,6 +53,7 @@
           (boolean-exp (sign rands)
                        (flat-map (lambda (rand) (helper rand collector depth-counter)) rands))
           (let-exp (pairs body) collector)
+          (letrec-exp (pairs body) collector)
           (set!-exp (id rhs-exp)
                     (flat-map (lambda (rand) (helper rand collector depth-counter)) (list id rhs-exp)))
           (begin-exp (exp-sequence)

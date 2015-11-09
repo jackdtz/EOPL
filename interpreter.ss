@@ -23,8 +23,8 @@
                 (define-exp (id body)
                   (let [(search-res-vec (contains? id global-env))]
                     (if search-res-vec
-                        (vector-set! search-res-vec 1 (eval-expression body (empty-nameless-env)))
-                        (extend-global-env id (eval-expression body (empty-nameless-env)) global-env)))))))))
+                        (begin (vector-set! search-res-vec 1 (eval-expression body (empty-nameless-env))) nil)
+                        (begin (extend-global-env id (eval-expression body (empty-nameless-env)) global-env) nil)))))))))
 
 (define eval-expression
   (lambda (exp env)
@@ -33,6 +33,8 @@
       (var-exp (id) (eopl:error "var-exp should not appear " var-exp))
       (let-exp (name-value-pairs body)
                (eopl:error "let-exp should not appear " let-exp))
+      (letrec-exp (name-value-pairs body)
+                  (eopl:error "letrec-exp should not appear " letrec-exp))
       (lexvar-exp (depth position)
                   (apply-nameless-env depth position env))
       (freevar-exp (id) (apply-global-env id))           
@@ -260,7 +262,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-
 (define run
   (lambda (x)
     (eval-program (parse-program x))))
@@ -269,9 +270,9 @@
   (lambda ()
     (begin
       (display "--> ")
-      (write (eval-program (parse-program (read))))
-      (newline)
-      (read-eval-loop))))
-
-
-(read-eval-loop)
+      (let [(res (eval-program (parse-program (read))))]
+        (if (null? res)
+            (read-eval-loop)
+            (begin (write res)
+                   (newline)
+                   (read-eval-loop)))))))

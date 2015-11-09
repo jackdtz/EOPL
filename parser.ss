@@ -27,8 +27,8 @@
                                  (parse-expression (get-altern exp)))]
           [(let-exp? exp) (let-exp (parse-let-pairs (get-name-val-pairs exp))
                                    (parse-expression (get-let-body exp)))]
-;          [(letrec-exp? exp) (let-exp (parse-let-pairs (get-name-val-pairs exp))
-;                                  (parse-expression (get-let-body exp)))]
+          [(letrec-exp? exp) (letrec-exp (parse-let-pairs (get-name-val-pairs exp))
+                                      (parse-expression (get-let-body exp)))]
           [(lambda-exp? exp) (lambda-exp (get-lambda-params exp)
                                          (parse-expression (get-lambda-body exp)))]          
           [(boolean-exp? exp)
@@ -104,6 +104,8 @@
                                     (map (lambda (rand) (helper rand env)) rands)))
           (let-exp (name-value-pairs body)
                    (eopl:error "let-exp should not exist in lex-add-calculator"))
+          (letrec-exp (name-value-pairs body)
+                   (eopl:error "letrec-exp should not exist in lex-add-calculator"))
           (set!-exp (id rhs-exp)
                     (set!-exp (helper id env) (helper rhs-exp env)))
           (begin-exp (exp-sequence)
@@ -149,23 +151,23 @@
           (cdr frame-info)))))
                
 
+(define extract-values
+  (lambda (pairs)
+    (map (lambda (pair)
+           (cases id-exp-pair pair
+             (name-value-pair (id value) value)))
+         pairs)))
+
+(define extract-names
+  (lambda (pairs)
+    (map (lambda (pair)
+           (cases id-exp-pair pair
+             (name-value-pair (id value) id)))
+         pairs)))
+
+
 (define let-to-lambda
   (lambda (ast-exp)
-
-    (define extract-values
-      (lambda (pairs)
-        (map (lambda (pair)
-               (cases id-exp-pair pair
-                 (name-value-pair (id value) value)))
-             pairs)))
-
-    (define extract-names
-      (lambda (pairs)
-        (map (lambda (pair)
-               (cases id-exp-pair pair
-                 (name-value-pair (id value) id)))
-             pairs)))
-    
     (cases expression ast-exp
       (lit-exp (num) ast-exp)
       (var-exp (id) ast-exp)
@@ -179,6 +181,13 @@
                  (let [(new-body (let-to-lambda body))]
                    (proc-app-exp (lambda-exp params new-body)
                                  args))))
+      (letrec-exp (name-value-pairs body)
+                  (let [(ids (extract-names name-value-pairs))
+                        (functions (extract-values name-value-pairs))]
+                    (let [(new-body (add-set!-exp ids functions (let-to-lambda body)))]
+                      (proc-app-exp (lambda-exp ids new-body)
+                                    (map (lambda (id) (lit-exp 0)) ids)))))
+                    
       (set!-exp (id rhs-exp) (set!-exp id (let-to-lambda rhs-exp)))
       (begin-exp (exp-sequence) (begin-exp (map let-to-lambda exp-sequence)))
       (lambda-exp (params body) (lambda-exp params (let-to-lambda body)))
@@ -188,6 +197,12 @@
                                            (let-to-lambda altern)))
       (primapp-exp (prim rands) (primapp-exp prim (map let-to-lambda rands))))))
 
+    
+(define add-set!-exp
+  (lambda (ids functions body)
+    (begin-exp (append (map (lambda (id function) (set!-exp (parse-expression id) function)) ids functions) (list body)))))
 
+(parse-program '(letrec [(f (lambda (x) (if (= x 1) 1 (* x (f (- x 1))))))]
+                  (f 3)))
 
                       
