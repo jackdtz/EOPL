@@ -10,11 +10,14 @@
 
 (define parse-form
   (lambda (form)
-    (cond [(define-exp? form) (define-exp
-                                (get-define-id form)
-                                (lex-add-calculator (let-to-lambda (parse-expression (get-define-body form)))))]
+    (cond [(identifier? form) (identifier form)]
+          [(define-exp? form)
+           (define-exp
+             (get-define-id form)
+             (lex-add-calculator (let-to-lambda (parse-expression (get-define-body form)))))]
           [else
-           (a-exp (lex-add-calculator (let-to-lambda (parse-expression form))))])))
+           (a-exp
+            (lex-add-calculator (let-to-lambda (parse-expression form))))])))
           
 
 (define parse-expression
@@ -200,9 +203,8 @@
     
 (define add-set!-exp
   (lambda (ids functions body)
-    (begin-exp (append (map (lambda (id function) (set!-exp (parse-expression id) function)) ids functions) (list body)))))
+    (begin-exp (append
+                (map (lambda (id function) (set!-exp (parse-expression id) function)) ids functions)
+                (list body)))))
 
-(parse-program '(letrec [(f (lambda (x) (if (= x 1) 1 (* x (f (- x 1))))))]
-                  (f 3)))
-
-                      
+         

@@ -5,6 +5,15 @@
 (define-datatype program program?
   (a-form (form form?)))
 
+(define-datatype form form?
+  (define-exp
+    (id symbol?)
+    (exp expression?))
+  (a-exp
+   (exp expression?))
+  (identifier
+   (id symbol?)))
+
 (define-datatype expression expression?
   (lit-exp (datum number?))
   (var-exp (id symbol?))
@@ -148,12 +157,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-datatype form form?
-  (define-exp
-    (id symbol?)
-    (exp expression?))
-  (a-exp
-   (exp expression?)))
+(define identifier? symbol?)
+    
 
 (define define-exp?
   (lambda (exp)

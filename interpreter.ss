@@ -20,6 +20,15 @@
               (cases form a-form
                 (a-exp (body)
                        (eval-expression body (empty-nameless-env)))
+                (identifier (id)
+                            (let [(search-res-vec (contains? id global-env))]
+                              (if search-res-vec
+                                  (begin (display (vector-ref search-res-vec 1))
+                                         (newline)
+                                         nil)
+                                  (begin (display (string-append "Unbounded variable "(symbol->string id)))
+                                         (newline)
+                                         nil))))
                 (define-exp (id body)
                   (let [(search-res-vec (contains? id global-env))]
                     (if search-res-vec
@@ -144,33 +153,24 @@
 (define apply-primitve
   (lambda (prim args)
     (cases primitive prim
-      (add (sign)
-           (+ (car args) (cadr args)))
-      (subtract (sign)
-                (if (= (length args) 2)
-                    (- (car args) (cadr args))
-                    (- (car args))))
-      (multiply (sign)
-                (* (car args) (cadr args)))
-      (divide (sign)
-              (/ (car args) (cadr args)))
-      (add1 (op)
-            (+ 1 (car args)))
-      (subt1 (op)
-             (- (car args) 1))
-      (list-op (op) args)
-      (car-op (op)
-              (let ([pair (car args)])
-                (if (null? pair)
-                    (eopl:error "empty lst")
-                    (car pair))))
-      (cdr-op (op)
-              (let ([pair (car args)])
-                (if (null? pair)
-                    (eopl:error "empty lst")
-                    (cdr pair))))
-      (cons-op (op)
-               (cons (car args) (cadr args))))))
+      (add (sign)            (+ (car args) (cadr args)))
+      (subtract (sign)       (if (= (length args) 2)
+                                 (- (car args) (cadr args))
+                                 (- (car args))))
+      (multiply (sign)       (* (car args) (cadr args)))
+      (divide (sign)         (/ (car args) (cadr args)))
+      (add1 (op)             (+ 1 (car args)))
+      (subt1 (op)            (- (car args) 1))
+      (list-op (op)          args)
+      (car-op (op)           (let ([pair (car args)])
+                               (if (null? pair)
+                                   (eopl:error "empty lst")
+                                   (car pair))))
+      (cdr-op (op)           (let ([pair (car args)])
+                               (if (null? pair)
+                                   (eopl:error "empty lst")
+                                   (cdr pair))))
+      (cons-op (op)          (cons (car args) (cadr args))))))
 
 
 
@@ -279,8 +279,4 @@
                    (newline)
                    (read-eval-loop)))))))
 
-(run '(define f
-        (lambda (x)
-          (if (= x 1)
-              1
-              (* x (f (- x 1)))))))
+(read-eval-loop)
