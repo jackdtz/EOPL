@@ -170,7 +170,12 @@
                                (if (null? pair)
                                    (eopl:error "empty lst")
                                    (cdr pair))))
-      (cons-op (op)          (cons (car args) (cadr args))))))
+      (cons-op (op)          (cons (car args) (cadr args)))
+      (cell-op (op)          (cell (car args)))
+      (contents-op (op)      (contents (car args)))
+      (is-cell?-op (op)      (cell? (car args)))
+      (set-cell!-op (op)     (begin (set-cell! (car args) (cadr args))
+                                    nil)))))
 
 
 
@@ -279,4 +284,5 @@
                    (newline)
                    (read-eval-loop)))))))
 
-(read-eval-loop)
+(run '(define a (cell 3)))
+(run '(set-cell! a 99))

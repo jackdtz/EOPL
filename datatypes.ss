@@ -155,6 +155,26 @@
       (a-ref (position vec)
              (vector-set! vec position val)))))
 
+(define cell
+  (lambda (arg)
+    (a-ref 0 (vector arg))))
+
+(define cell?
+  (lambda (arg)
+    (reference? arg)))
+
+(define contents
+  (lambda (cell)
+    (cases reference cell
+      (a-ref (position vec)
+             (vector-ref vec position)))))
+
+(define set-cell!
+  (lambda (cell value)
+    (cases reference cell
+      (a-ref (position vec)
+             (vector-set! vec position value)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define identifier? symbol?)
@@ -181,7 +201,27 @@
   (list-op (op list-op?))
   (car-op (op car?))
   (cdr-op (op cdr?))
-  (cons-op (op cons?)))
+  (cons-op (op cons?))
+  (cell-op (op cell-constructor?))
+  (contents-op (op contents-op?))
+  (is-cell?-op (op is-cell-op?))
+  (set-cell!-op (op set-cell!-op?)))
+
+(define cell-constructor?
+  (lambda (sign)
+    (equal? sign 'cell)))
+
+(define contents-op?
+  (lambda (sign)
+    (equal? sign 'contents)))
+
+(define is-cell-op?
+  (lambda (sign)
+    (equal? sign 'cell?)))
+
+(define set-cell!-op?
+  (lambda (sign)
+    (equal? sign 'set-cell!)))
 
 (define is-add?
   (lambda (sign)
@@ -254,7 +294,7 @@
 (define primitive-exp?
   (lambda (exp)
     (let [(prim-op (car exp))
-          (op-list '(+ - * / add1 subt1 cons list car cdr))]
+          (op-list '(+ - * / add1 subt1 cons list car cdr cell cell? set-cell! contents))]
       (if (memq prim-op op-list) #t #f))))
 
 (define let-exp?

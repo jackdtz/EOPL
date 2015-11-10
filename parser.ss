@@ -77,16 +77,20 @@
 
 (define parse-primitive
   (lambda (prim-exp)
-    (cond [(is-add? (car prim-exp))                   `( ,(add (car prim-exp))            2)]
-          [(is-sub? (car prim-exp))                   `( ,(subtract (car prim-exp))     1 2)]
-          [(is-mul? (car prim-exp))                   `( ,(multiply (car prim-exp))       2)]
-          [(is-div? (car prim-exp))                   `( ,(divide (car prim-exp))         2)]
-          [(add1? (car prim-exp))                     `( ,(add1 (car prim-exp))           1)]
-          [(subt1? (car prim-exp))                    `( ,(subt1 (car prim-exp))          1)]
-          [(list-op? (car prim-exp))                  `( ,(list-op (car prim-exp))      inf)]
-          [(car? (car prim-exp))                      `( ,(car-op (car prim-exp))         1)]
-          [(cdr? (car prim-exp))                      `( ,(cdr-op (car prim-exp))         1)]
-          [(cons? (car prim-exp))                     `( ,(cons-op (car prim-exp))        2)]
+    (cond [(is-add? (car prim-exp))                   `( ,(add (car prim-exp))              2)]
+          [(is-sub? (car prim-exp))                   `( ,(subtract (car prim-exp))       1 2)]
+          [(is-mul? (car prim-exp))                   `( ,(multiply (car prim-exp))         2)]
+          [(is-div? (car prim-exp))                   `( ,(divide (car prim-exp))           2)]
+          [(add1? (car prim-exp))                     `( ,(add1 (car prim-exp))             1)]
+          [(subt1? (car prim-exp))                    `( ,(subt1 (car prim-exp))            1)]
+          [(list-op? (car prim-exp))                  `( ,(list-op (car prim-exp))        inf)]
+          [(car? (car prim-exp))                      `( ,(car-op (car prim-exp))           1)]
+          [(cdr? (car prim-exp))                      `( ,(cdr-op (car prim-exp))           1)]
+          [(cons? (car prim-exp))                     `( ,(cons-op (car prim-exp))          2)]
+          [(cell-constructor? (car prim-exp))         `( ,(cell-op (car prim-exp))          1)]
+          [(is-cell-op? (car prim-exp))               `( ,(is-cell?-op (car prim-exp))      1)]
+          [(contents-op? (car prim-exp))              `( ,(contents-op (car prim-exp))      1)]
+          [(set-cell!-op? (car prim-exp))             `( ,(set-cell!-op (car prim-exp))     2)]
           [else 
            (eopl:error "unknow expression" exp)])))
 
@@ -206,5 +210,3 @@
     (begin-exp (append
                 (map (lambda (id function) (set!-exp (parse-expression id) function)) ids functions)
                 (list body)))))
-
-         
