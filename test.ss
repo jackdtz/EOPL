@@ -1,12 +1,13 @@
 #lang eopl
+
 (#%require "parser.ss")
 (#%require "datatypes.ss")
 (#%require "interpreter.ss")
+(#%require "utils.ss")
+(require rackunit)
 
-(define test
-  (lambda (test-function)
-    (display (run test-function))
-    (newline)))
+
+
 
 ; test for datatypes
 (define factorial-func
@@ -42,10 +43,10 @@
                    x)))
 
 
-(test factorial-func)
-(test mutual-recursion-test)
-(test curried-fun)
-(test test-set!)
-
+(define my-length
+  (lambda (x)
+    (if (null? x)
+        0
+        (+ 1 (my-length (cdr x))))))
 
 
