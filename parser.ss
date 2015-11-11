@@ -91,6 +91,9 @@
           [(is-cell-op? (car prim-exp))               `( ,(is-cell?-op (car prim-exp))      1)]
           [(contents-op? (car prim-exp))              `( ,(contents-op (car prim-exp))      1)]
           [(set-cell!-op? (car prim-exp))             `( ,(set-cell!-op (car prim-exp))     2)]
+          [(array-constructor? (car prim-exp))        `( ,(array-op (car prim-exp))         1)]
+          [(array-ref-op? (car prim-exp))             `( ,(array-ref-op (car prim-exp))     2)]
+          [(array-set!-op? (car prim-exp))            `( ,(array-set!-op (car prim-exp))    3)]
           [else 
            (eopl:error "unknow expression" exp)])))
 

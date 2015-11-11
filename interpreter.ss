@@ -175,7 +175,11 @@
       (contents-op (op)      (contents (car args)))
       (is-cell?-op (op)      (cell? (car args)))
       (set-cell!-op (op)     (begin (set-cell! (car args) (cadr args))
-                                    nil)))))
+                                    nil))
+      (array-op (op)         (array (car args)))
+      (array-ref-op (op)     (array-ref (car args) (cadr args)))
+      (array-set!-op (op)    (array-set! (car args) (cadr args) (caddr args))))))
+
 
 
 
@@ -284,5 +288,4 @@
                    (newline)
                    (read-eval-loop)))))))
 
-(run '(define a (cell 3)))
-(run '(set-cell! a 99))
+(read-eval-loop)

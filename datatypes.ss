@@ -163,17 +163,45 @@
   (lambda (arg)
     (reference? arg)))
 
+(define set-cell!
+  (lambda (cell value)
+    (cases reference cell
+      (a-ref (position vec)
+             (vector-set! vec position value)))))
+
 (define contents
   (lambda (cell)
     (cases reference cell
       (a-ref (position vec)
              (vector-ref vec position)))))
 
-(define set-cell!
-  (lambda (cell value)
-    (cases reference cell
-      (a-ref (position vec)
-             (vector-set! vec position value)))))
+(define array
+  (lambda (init-size)
+    (define iterator
+      (lambda (init-size collector)
+        (if (zero? init-size)
+            collector
+            (iterator (- init-size 1) (cons (cell 0) collector)))))
+    (list->vector (iterator init-size '()))))
+
+
+(define access-array-slot
+  (lambda (array index)
+    (vector-ref array index)))
+
+(define array-ref
+  (lambda (array position)
+    (dereference (access-array-slot array position))))
+
+(define array-set!
+  (lambda (array position new-value)
+    (let [(slot (access-array-slot array position))]
+      (set-cell! slot new-value))))
+
+
+
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -205,7 +233,23 @@
   (cell-op (op cell-constructor?))
   (contents-op (op contents-op?))
   (is-cell?-op (op is-cell-op?))
-  (set-cell!-op (op set-cell!-op?)))
+  (set-cell!-op (op set-cell!-op?))
+  (array-op (op array-constructor?))
+  (array-ref-op (op array-ref-op?))
+  (array-set!-op (op array-set!-op?)))
+
+
+(define array-constructor?
+  (lambda (sign)
+    (equal? sign 'array)))
+
+(define array-ref-op?
+  (lambda (sign)
+    (equal? sign 'array-ref)))
+
+(define array-set!-op?
+  (lambda (sign)
+    (equal? sign 'array-set!)))
 
 (define cell-constructor?
   (lambda (sign)
@@ -294,7 +338,7 @@
 (define primitive-exp?
   (lambda (exp)
     (let [(prim-op (car exp))
-          (op-list '(+ - * / add1 subt1 cons list car cdr cell cell? set-cell! contents))]
+          (op-list '(+ - * / add1 subt1 cons list car cdr cell cell? set-cell! contents array array-ref array-set!))]
       (if (memq prim-op op-list) #t #f))))
 
 (define let-exp?
