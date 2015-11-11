@@ -1,2 +1,4 @@
-A scheme interpreter using scheme
+A scheme-like language constructed by scheme
+
+Reference: Essentials of programming languages, 2nd Edition
 
