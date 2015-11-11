@@ -36,6 +36,14 @@
    (iter initial sequence))
 
 
+(define contains?
+  (lambda (id env)
+    (cond [(null? env) #f]
+          [(equal? id (vector-ref (car env) 0)) (car env)]
+          [else
+           (contains? id (cdr env))])))
+
+
 (define get-free-var-lexadd
   (lambda (exp)
     (define helper
@@ -45,9 +53,9 @@
           (var-exp (id) collector)
           (bool-val (bool) collector)
           (lexvar-exp (depth position)
-                      (if (> depth depth-counter)
-                          (cons (cons exp depth-counter) collector)
-                          collector))
+                      (cond [(contains? (cons exp depth) collector) collector]
+                            [(> depth depth-counter) (cons (cons exp depth-counter) collector)]
+                            [else collector]))
           (freevar-exp (id)
                        collector)
           (boolean-exp (sign rands)
@@ -88,6 +96,12 @@
                        (flat-map (lambda (rand) (helper rand collector)) rands))
           (begin-exp (exp-sequence)
                      (flat-map (lambda (sub-exp) (helper sub-exp collector)) exp-sequence))
+          (set!-exp (id rhs-exp)
+                    (cases expression id
+                      (lexvar-exp (depth position)
+                                  (helper rhs-exp (cons id collector)))
+                      (else
+                       collector)))
           (else
            collector))))
     (helper exp '())))
@@ -95,7 +109,7 @@
 (define max-of-list
   (lambda (lst)
     (if (null? lst)
-        #f
+        (eopl:error "max of list, get empty list")
         (fold-left (lambda (e r) (if (> e r) e r))
                    (car lst)
                    (cdr lst)))))
@@ -111,6 +125,9 @@
                 (else
                  (eopl:error "Incorrect type in get-max-depth"))))
             all-lex-add)))))
+
+
+
 
 
 ; (define curried-exp

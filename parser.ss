@@ -190,14 +190,13 @@
                      (args (extract-values name-value-pairs))]
                  (let [(new-body (let-to-lambda body))]
                    (proc-app-exp (lambda-exp params new-body)
-                                 args))))
+                                 (map let-to-lambda args)))))
       (letrec-exp (name-value-pairs body)
                   (let [(ids (extract-names name-value-pairs))
                         (functions (extract-values name-value-pairs))]
                     (let [(new-body (add-set!-exp ids functions (let-to-lambda body)))]
                       (proc-app-exp (lambda-exp ids new-body)
-                                    (map (lambda (id) (lit-exp 0)) ids)))))
-                    
+                                    (map (lambda (id) (lit-exp 0)) ids)))))                 
       (set!-exp (id rhs-exp) (set!-exp id (let-to-lambda rhs-exp)))
       (begin-exp (exp-sequence) (begin-exp (map let-to-lambda exp-sequence)))
       (lambda-exp (params body) (lambda-exp params (let-to-lambda body)))
@@ -213,3 +212,15 @@
     (begin-exp (append
                 (map (lambda (id function) (set!-exp (parse-expression id) function)) ids functions)
                 (list body)))))
+
+
+
+(parse-program '(let [(a 3)
+                      (b 4)
+                      (swap (lambda (x y)
+                              (let [(temp x)]
+                                (begin (set! x y)
+                                       (set! y temp)))))]
+                  (begin (swap a b)
+                         a
+                         b)))

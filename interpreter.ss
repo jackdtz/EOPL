@@ -198,12 +198,7 @@
   (lambda (id value env)
     (set! global-env (cons (vector id value) env))))
 
-(define contains?
-  (lambda (id env)
-    (cond [(null? env) #f]
-          [(equal? id (vector-ref (car env) 0)) (car env)]
-          [else
-           (contains? id (cdr env))])))
+
   
 (define apply-global-env
   (lambda (id)
@@ -219,6 +214,8 @@
 (define extend-nameless-env
   (lambda (vals env)
     (cons (list->vector vals) env)))
+
+
 
 
 (define get-saved-env
@@ -288,4 +285,12 @@
                    (newline)
                    (read-eval-loop)))))))
 
-(read-eval-loop)
+(run '(let [(a 3)
+            (b 4)
+            (swap (lambda (x y)
+                    (let [(temp x)]
+                      (begin (set! x y)
+                             (set! y temp)))))]
+        (begin (swap a b)
+               b
+               a)))
