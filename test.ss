@@ -31,22 +31,46 @@
               (even? (lambda (x) (make-even make-even make-odd x)))]
           (odd? 3))))
 
-(define curried-fun
-  '(let [(f (lambda (x y) (+ x y)))]
-    (let [(c 3)]
-      (f c 9))))
-
-(define test-set!
-  '(let [(x 1)
-            (y 3)]
-            (begin (set! x 100)
-                   x)))
+  
 
 
-(define my-length
-  (lambda (x)
-    (if (null? x)
-        0
-        (+ 1 (my-length (cdr x))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                                                     ;
+;                                                     ;
+;                parse-expression-test                ;
+;                                                     ;
+;                                                     ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(check-equal? (parse-expression '1) (lit-exp 1))
+(check-equal? (parse-expression 'a) (var-exp 'a))
+(check-equal? (parse-expression '#t) (bool-val '#t))
+(check-equal? (parse-expression '(if 1 2 3)) (if-exp (lit-exp 1)
+                                                     (lit-exp 2)
+                                                     (lit-exp 3)))
+(check-equal? (parse-expression '(let [(a 3)]
+                                   (let [(b 4)]
+                                     (+ a b))))
+              (let-exp `(,(name-value-pair 'a (lit-exp 3)))
+                       (let-exp `(,(name-value-pair 'b (lit-exp 4)))
+                                (primapp-exp (add '+) `(,(var-exp 'a) ,(var-exp 'b))))))
+                                    
+              
+(check-equal? (parse-expression '(let [(x 1)
+                                       (y 3)]
+                                   (begin (set! x 100)
+                                          x)))
+              (let-exp `(,(name-value-pair 'x (lit-exp 1))
+                         ,(name-value-pair 'y (lit-exp 3)))
+                       (begin-exp `(,(set!-exp (var-exp 'x) (lit-exp 100))
+                                    ,(var-exp 'x)))))
+
+(check-equal? (parse-expression '(let [(f (lambda (x y) (+ x y)))]
+                                   (let [(c 3)]
+                                     (f c 9))))
+              (let-exp `(,(name-value-pair 'f
+                                           (lambda-exp '(x y) (primapp-exp (add '+) `(,(var-exp 'x) ,(var-exp 'y))))))
+                       (let-exp `(,(name-value-pair 'c (lit-exp 3)))
+                                (proc-app-exp (var-exp 'f) `(,(var-exp 'c) ,(lit-exp 9))))))
