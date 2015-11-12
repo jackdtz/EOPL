@@ -119,19 +119,56 @@
      (check-equal? let-to-lambda-ast expected-let-to-lambda-ast)
      (check-equal? final-exp expected-final-ast)
      (check-equal? (run exp) 12))))   
-                                    
-             
 
-#|
-(check-equal? (parse-expression '(let [(swap (lambda (x y)
-                                               (let [(temp x)]
-                                                 (begin (set! x y)
-                                                        (set! y temp)))))]
-                                   (begin (swap a b))))
-                                          
-              
-              "test for parsing let-exp with lambda-exp as value of a pair and body of function call")
-|#
+(test-case
+ "test for parsing let-exp with lambda-exp as value of a pair and body of function call"
+ (let ([exp '(let [(swap (lambda (x y)
+                           (let [(temp x)]
+                             (begin (set! x y)
+                                    (set! y temp)))))
+                   (a 3)
+                   (b 4)]
+               (begin (swap a b)))])
+   (let* ([ast (parse-expression exp)]
+          [let-to-lambda-ast (let-to-lambda ast)]
+          [final-exp (lex-add-calculator let-to-lambda-ast)]
+          [expected-ast (let-exp `(,(name-value-pair 'swap
+                                                     (lambda-exp '(x y)
+                                                                 (let-exp `(,(name-value-pair 'temp (var-exp 'x)))
+                                                                          (begin-exp
+                                                                            `(,(set!-exp (var-exp 'x) (var-exp 'y))
+                                                                              ,(set!-exp (var-exp 'y) (var-exp 'temp)))))))
+                                   ,(name-value-pair 'a (lit-exp 3))
+                                   ,(name-value-pair 'b (lit-exp 4)))
+                                 (begin-exp `(,(proc-app-exp (var-exp 'swap) `(,(var-exp 'a) ,(var-exp 'b))))))]
+          [expected-let-to-lambda-ast (proc-app-exp
+                                       (lambda-exp `(swap a b) (begin-exp `(,(proc-app-exp (var-exp 'swap) `(,(var-exp 'a) ,(var-exp 'b))))))
+                                       `(,(lambda-exp `(x y)
+                                                      `(,(proc-app-exp
+                                                          (lambda-exp `(temp)
+                                                                      (begin-exp
+                                                                        `(,(set!-exp (var-exp 'x) (var-exp 'y))
+                                                                          ,(set!-exp (var-exp 'y) (var-exp 'temp)))))
+                                                          `(,(var-exp 'x)))))
+                                       ,(lit-exp 3)
+                                       ,(lit-exp 4)))]
+          [expected-final-ast (proc-app-exp
+                                       (lambda-exp `(swap a b) (begin-exp `(,(proc-app-exp (var-exp 'swap) `(,(var-exp 'a) ,(var-exp 'b))))))
+                                       `(,(lambda-exp `(x y)
+                                                      (proc-app-exp
+                                                       (lambda-exp `(temp)
+                                                                   (begin-exp
+                                                                     `(,(set!-exp (lexvar-exp 1 0) (lexvar-exp 1 1))
+                                                                       ,(set!-exp (lexvar-exp 1 1) (lexvar-exp 0 0)))))
+                                                       `(,(lexvar-exp 0 0))))
+                                         ,(lit-exp 3)
+                                         ,(lit-exp 4)))])
+     (check-equal? ast expected-ast)
+     (check-equal? let-to-lambda-ast expected-let-to-lambda-ast)
+     (check-equal? final-exp expected-final-ast)
+     (check-equal? (run exp) 12))))   
+
+
 
 (check-equal? (let-to-lambda (parse-expression '(let [(a 3)]
                                                   (let [(b 4)]
