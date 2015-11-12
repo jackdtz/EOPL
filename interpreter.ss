@@ -21,8 +21,7 @@
                 (a-exp (body)
                        (eval-expression body (empty-nameless-env)))
                 (identifier (id)
-                            (eval-single-identifier id global-env))
-                            
+                            (eval-single-identifier id global-env))                       
                 (define-exp (id body)
                   (let [(search-res-vec (contains? id global-env))]
                     (if search-res-vec
