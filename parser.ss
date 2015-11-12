@@ -213,14 +213,3 @@
                 (map (lambda (id function) (set!-exp (parse-expression id) function)) ids functions)
                 (list body)))))
 
-
-
-(parse-program '(let [(a 3)
-                      (b 4)
-                      (swap (lambda (x y)
-                              (let [(temp x)]
-                                (begin (set! x y)
-                                       (set! y temp)))))]
-                  (begin (swap a b)
-                         a
-                         b)))

@@ -12,7 +12,7 @@
   (a-exp
    (exp expression?))
   (identifier
-   (id symbol?)))
+   (id identifier?)))
 
 (define-datatype expression expression?
   (lit-exp (datum number?))
@@ -205,7 +205,16 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define identifier? symbol?)
+(define identifier?
+  (lambda (exp)
+    (or (number? exp)
+        (symbol? exp)
+        (string? exp))))
+
+(define is-self-evaluated?
+  (lambda (exp)
+    (or (number? exp)
+        (string? exp))))
     
 
 (define define-exp?

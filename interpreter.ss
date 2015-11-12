@@ -21,14 +21,8 @@
                 (a-exp (body)
                        (eval-expression body (empty-nameless-env)))
                 (identifier (id)
-                            (let [(search-res-vec (contains? id global-env))]
-                              (if search-res-vec
-                                  (begin (display (vector-ref search-res-vec 1))
-                                         (newline)
-                                         nil)
-                                  (begin (display (string-append "Unbounded variable "(symbol->string id)))
-                                         (newline)
-                                         nil))))
+                            (eval-single-identifier id global-env))
+                            
                 (define-exp (id body)
                   (let [(search-res-vec (contains? id global-env))]
                     (if search-res-vec
@@ -36,6 +30,20 @@
                         (begin (extend-global-env id 0 global-env)
                                (extend-global-env id (eval-expression body (empty-nameless-env)) global-env)
                                nil)))))))))
+
+(define eval-single-identifier
+  (lambda (id env)
+    (cond [(is-self-evaluated? id) id]
+          [else
+           (let [(search-res-vec (contains? id global-env))]
+                              (if search-res-vec
+                                  (begin (display (vector-ref search-res-vec 1))
+                                         (newline)
+                                         nil)
+                                  (begin (display (string-append "Unbounded variable "(symbol->string id)))
+                                         (newline)
+                                         nil)))])))
+          
 
 (define eval-expression
   (lambda (exp env)
@@ -285,12 +293,3 @@
                    (newline)
                    (read-eval-loop)))))))
 
-(run '(let [(a 3)
-            (b 4)
-            (swap (lambda (x y)
-                    (let [(temp x)]
-                      (begin (set! x y)
-                             (set! y temp)))))]
-        (begin (swap a b)
-               b
-               a)))

@@ -44,18 +44,32 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(check-equal? (parse-expression '1) (lit-exp 1))
-(check-equal? (parse-expression 'a) (var-exp 'a))
-(check-equal? (parse-expression '#t) (bool-val '#t))
-(check-equal? (parse-expression '(if 1 2 3)) (if-exp (lit-exp 1)
-                                                     (lit-exp 2)
-                                                     (lit-exp 3)))
+(check-equal? (parse-expression '1)
+              (lit-exp 1)
+              "test for parsing number")
+
+(check-equal? (parse-expression 'a)
+              (var-exp 'a)
+              "test for parsing symbol")
+
+(check-equal? (parse-expression '#t)
+              (bool-val '#t)
+              "test for parsing boolean value")
+
+
+(check-equal? (parse-expression '(if 1 2 3))
+              (if-exp (lit-exp 1)
+                      (lit-exp 2)
+                      (lit-exp 3))
+              "test for parsing if expression")
+
 (check-equal? (parse-expression '(let [(a 3)]
                                    (let [(b 4)]
                                      (+ a b))))
               (let-exp `(,(name-value-pair 'a (lit-exp 3)))
                        (let-exp `(,(name-value-pair 'b (lit-exp 4)))
-                                (primapp-exp (add '+) `(,(var-exp 'a) ,(var-exp 'b))))))
+                                (primapp-exp (add '+) `(,(var-exp 'a) ,(var-exp 'b)))))
+              "test for parsing let-expression")
                                     
               
 (check-equal? (parse-expression '(let [(x 1)
@@ -65,7 +79,8 @@
               (let-exp `(,(name-value-pair 'x (lit-exp 1))
                          ,(name-value-pair 'y (lit-exp 3)))
                        (begin-exp `(,(set!-exp (var-exp 'x) (lit-exp 100))
-                                    ,(var-exp 'x)))))
+                                    ,(var-exp 'x))))
+              "test for parsing let-exp with a body of begin-exp and set!-exp")
 
 (check-equal? (parse-expression '(let [(f (lambda (x y) (+ x y)))]
                                    (let [(c 3)]
@@ -73,4 +88,18 @@
               (let-exp `(,(name-value-pair 'f
                                            (lambda-exp '(x y) (primapp-exp (add '+) `(,(var-exp 'x) ,(var-exp 'y))))))
                        (let-exp `(,(name-value-pair 'c (lit-exp 3)))
-                                (proc-app-exp (var-exp 'f) `(,(var-exp 'c) ,(lit-exp 9))))))
+                                (proc-app-exp (var-exp 'f) `(,(var-exp 'c) ,(lit-exp 9)))))
+              "test for parsing let-exp with lambda-exp as value of a pair and body of function call")
+
+
+(check-equal? (let-to-lambda (parse-expression '(let [(a 3)]
+                                                  (let [(b 4)]
+                                                    (+ a b)))))
+              (proc-app-exp (lambda-exp `(a)
+                                      (proc-app-exp (lambda-exp `(b) (primapp-exp (add '+) `(,(var-exp 'a) ,(var-exp 'b)))) `(,(lit-exp 4)))) `(,(lit-exp 3)))
+              "test for transforming let-exp to procedure call")
+
+()
+
+
+                                      
