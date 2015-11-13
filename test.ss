@@ -128,7 +128,7 @@
                                     (set! y temp)))))
                    (a 3)
                    (b 4)]
-               (begin (swap a b)))])
+               (begin (swap a b) b))])
    (let* ([ast (parse-expression exp)]
           [let-to-lambda-ast (let-to-lambda ast)]
           [final-exp (lex-add-calculator let-to-lambda-ast)]
@@ -140,20 +140,21 @@
                                                                               ,(set!-exp (var-exp 'y) (var-exp 'temp)))))))
                                    ,(name-value-pair 'a (lit-exp 3))
                                    ,(name-value-pair 'b (lit-exp 4)))
-                                 (begin-exp `(,(proc-app-exp (var-exp 'swap) `(,(var-exp 'a) ,(var-exp 'b))))))]
+                                 (begin-exp `(,(proc-app-exp (var-exp 'swap) `(,(var-exp 'a) ,(var-exp 'b)))
+                                              ,(var-exp 'b))))]
           [expected-let-to-lambda-ast (proc-app-exp
-                                       (lambda-exp `(swap a b) (begin-exp `(,(proc-app-exp (var-exp 'swap) `(,(var-exp 'a) ,(var-exp 'b))))))
+                                       (lambda-exp `(swap a b) (begin-exp `(,(proc-app-exp (var-exp 'swap) `(,(var-exp 'a) ,(var-exp 'b))) ,(var-exp 'b))))
                                        `(,(lambda-exp `(x y)
-                                                      `(,(proc-app-exp
-                                                          (lambda-exp `(temp)
-                                                                      (begin-exp
-                                                                        `(,(set!-exp (var-exp 'x) (var-exp 'y))
-                                                                          ,(set!-exp (var-exp 'y) (var-exp 'temp)))))
-                                                          `(,(var-exp 'x)))))
+                                                      (proc-app-exp
+                                                       (lambda-exp `(temp)
+                                                                   (begin-exp
+                                                                     `(,(set!-exp (var-exp 'x) (var-exp 'y))
+                                                                       ,(set!-exp (var-exp 'y) (var-exp 'temp)))))
+                                                       `(,(var-exp 'x))))
                                        ,(lit-exp 3)
                                        ,(lit-exp 4)))]
           [expected-final-ast (proc-app-exp
-                                       (lambda-exp `(swap a b) (begin-exp `(,(proc-app-exp (var-exp 'swap) `(,(var-exp 'a) ,(var-exp 'b))))))
+                                       (lambda-exp `(swap a b) (begin-exp `(,(proc-app-exp (lexvar-exp 0 0) `(,(lexvar-exp 0 1) ,(lexvar-exp 0 2))) ,(lexvar-exp 0 2))))
                                        `(,(lambda-exp `(x y)
                                                       (proc-app-exp
                                                        (lambda-exp `(temp)
@@ -166,26 +167,9 @@
      (check-equal? ast expected-ast)
      (check-equal? let-to-lambda-ast expected-let-to-lambda-ast)
      (check-equal? final-exp expected-final-ast)
-     (check-equal? (run exp) 12))))   
+     (check-equal? (run exp) 4))))   
 
 
-
-(check-equal? (let-to-lambda (parse-expression '(let [(a 3)]
-                                                  (let [(b 4)]
-                                                    (+ a b)))))
-              (proc-app-exp (lambda-exp `(a)
-                                      (proc-app-exp (lambda-exp `(b) (primapp-exp (add '+) `(,(var-exp 'a) ,(var-exp 'b)))) `(,(lit-exp 4)))) `(,(lit-exp 3)))
-              "test for transforming let-exp to procedure call")
-
-(check-equal? (run '1) 1 "test for evaluating number")
-(check-equal? (run "a") "a" "test for evaluating sting")
-(check-equal? (run 'a) nil "test for evaluating variable")
-
-(check-equal? (run '(let [(a 3)]
-                      (let [(b 4)]
-                        (+ a b))))
-              7
-              "test for evaluating double nested let-exp")
 
 (check-equal? (run '(let [(a 3)]
                       (let [(b 4)]

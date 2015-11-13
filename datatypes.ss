@@ -392,6 +392,6 @@
 (define begin-exp?
   (lambda (exp)
     (and (equal? (car exp) 'begin)
-         (> (length (cdr exp)) 1))))
+         (>= (length (cdr exp)) 1))))
 
 (define get-exp-sequence cdr)
