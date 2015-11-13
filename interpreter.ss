@@ -259,12 +259,16 @@
           [(zero? depth) (car env)]
           [else (get-env-frame (- depth 1) env)])))
 
+
+; apply-env-ref will return the reference of the target value
 (define apply-env-ref
   (lambda (depth position env)
     (cond [(null? env) (eopl:error "unbound variable")]
           [(zero? depth) (a-ref position (car env))]
           [else (apply-env-ref (- depth 1) position (cdr env))])))
 
+
+; apply-nameless-env will return a copy of the target value
 (define apply-nameless-env
   (lambda (depth position env)
     (dereference (apply-env-ref depth position env))))

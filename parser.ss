@@ -1,6 +1,7 @@
 #lang eopl
 
 (#%require "datatypes.ss")
+(require racket/match)
 (#%provide (all-defined))
 
 (define parse-program
@@ -20,37 +21,61 @@
             (lex-add-calculator (let-to-lambda (parse-expression form))))])))
           
 
+;(define parse-expression
+;  (lambda (exp)
+;    (cond [(number? exp) (lit-exp exp)]
+;          [(symbol? exp) (var-exp exp)]
+;          [(boolean? exp) (bool-val exp)]
+;          [(ref-exp? exp) (ref-exp (parse-expression (get-ref-id exp)))]
+;          [(if-exp? exp) (if-exp (parse-expression (get-pred exp))
+;                                 (parse-expression (get-conseq exp))
+;                                 (parse-expression (get-altern exp)))]
+;          [(let-exp? exp) (let-exp (parse-let-pairs (get-name-val-pairs exp))
+;                                   (parse-expression (get-let-body exp)))]
+;          [(letrec-exp? exp) (letrec-exp (parse-let-pairs (get-name-val-pairs exp))
+;                                      (parse-expression (get-let-body exp)))]
+;          [(lambda-exp? exp) (lambda-exp (get-lambda-params exp)
+;                                         (parse-expression (get-lambda-body exp)))]          
+;          [(boolean-exp? exp)
+;           (let [(bool-info (parse-boolean-exp exp))]
+;             (if (memq (length (cdr exp)) (cdr bool-info))
+;                 (boolean-exp (car bool-info) (map parse-expression (cdr exp)))
+;                 (eopl:error "Incorrect number of parameter")))]
+;          [(primitive-exp? exp)
+;           	(let [(prim-info (parse-primitive exp))]
+;              (if (or (memq (length (cdr exp)) (cdr prim-info))
+;                      (equal? (cadr prim-info) 'inf))
+;                  (primapp-exp (car prim-info) (map parse-expression (cdr exp)))
+;                  (eopl:error "Incorrect number of parameter")))]
+;          [(set!-exp? exp) (set!-exp (parse-expression (get-setexp-id exp)) (parse-expression (get-setexp-rhs exp)))]
+;          [(begin-exp? exp) (begin-exp (map parse-expression (get-exp-sequence exp)))]
+;          [else
+;           (proc-app-exp (parse-expression (get-proc-lambda exp))
+;                                            (map parse-expression (get-proc-params exp)))])))
+
+
 (define parse-expression
   (lambda (exp)
-    (cond [(number? exp) (lit-exp exp)]
-          [(symbol? exp) (var-exp exp)]
-          [(boolean? exp) (bool-val exp)]
-          [(ref-exp? exp) (ref-exp (parse-expression (get-ref-id exp)))]
-          [(if-exp? exp) (if-exp (parse-expression (get-pred exp))
-                                 (parse-expression (get-conseq exp))
-                                 (parse-expression (get-altern exp)))]
-          [(let-exp? exp) (let-exp (parse-let-pairs (get-name-val-pairs exp))
-                                   (parse-expression (get-let-body exp)))]
-          [(letrec-exp? exp) (letrec-exp (parse-let-pairs (get-name-val-pairs exp))
-                                      (parse-expression (get-let-body exp)))]
-          [(lambda-exp? exp) (lambda-exp (get-lambda-params exp)
-                                         (parse-expression (get-lambda-body exp)))]          
-          [(boolean-exp? exp)
-           (let [(bool-info (parse-boolean-exp exp))]
-             (if (memq (length (cdr exp)) (cdr bool-info))
-                 (boolean-exp (car bool-info) (map parse-expression (cdr exp)))
-                 (eopl:error "Incorrect number of parameter")))]
-          [(primitive-exp? exp)
-           	(let [(prim-info (parse-primitive exp))]
-              (if (or (memq (length (cdr exp)) (cdr prim-info))
-                      (equal? (cadr prim-info) 'inf))
-                  (primapp-exp (car prim-info) (map parse-expression (cdr exp)))
-                  (eopl:error "Incorrect number of parameter")))]
-          [(set!-exp? exp) (set!-exp (parse-expression (get-setexp-id exp)) (parse-expression (get-setexp-rhs exp)))]
-          [(begin-exp? exp) (begin-exp (map parse-expression (get-exp-sequence exp)))]
-          [else
-           (proc-app-exp (parse-expression (get-proc-lambda exp))
-                                             (map parse-expression (get-proc-params exp)))])))
+    (match exp
+      [(? number? exp) (lit-exp exp)]
+      [(? symbol? exp) (var-exp exp)]
+      [(? boolean? exp) (bool-val exp)]
+      [`(ref ,identifier) (ref-exp (parse-expression identifier))]
+      [`(if ,pred ,conseq ,altern) (if-exp (parse-expression pred)
+                                           (parse-expression conseq)
+                                           (parse-expression altern))]
+      [`(let (,id-val-pair ...) ,body) (let-exp (parse-let-pairs id-val-pair)
+                                                (parse-expression body))]
+      [`(letrec (,id-val-pair ...) ,body) (letrec-exp (parse-let-pairs id-val-pair)
+                                                      (parse-expression body))]
+      [`(lambda (,params) ,body) (lambda-exp params body)]
+      [(? boolean-exp exp) (parse-boolean-exp exp)]
+      [(? primitive-exp? exp) (parse-primitive exp)]
+      [`(set! ,identifier ,value) (set!-exp (parse-expression identifier) (parse-expression value))]
+      [`(begin (,expression ...)) (cond [(null? expression) (eopl:error "begin expression should have at least one clause")]
+                                        [else (begin-exp (parse-expression expression))])]
+      [`(,function-name ,params ...) (proc-app-exp (parse-expression function-name) (parse-expression params))])))
+      
 
 
 (define parse-let-pairs
@@ -222,3 +247,6 @@
 
 
 
+(parse-expression '(let [(a 3)]
+               (let [(b 4)]
+                 (+ a b))))
