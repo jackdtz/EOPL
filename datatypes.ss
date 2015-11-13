@@ -49,10 +49,10 @@
    (depth number?)
    (position number?))
   (freevar-exp
-   (id symbol?)))
+   (id symbol?))
+  (ref-exp (id expression?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 
 
 
@@ -245,7 +245,22 @@
   (set-cell!-op (op set-cell!-op?))
   (array-op (op array-constructor?))
   (array-ref-op (op array-ref-op?))
-  (array-set!-op (op array-set!-op?)))
+  (array-set!-op (op array-set!-op?))
+  (setref!-op (op setref!-op?))
+  (dereference-op (op dereference-op?))
+  (ref-op (op ref-op?)))
+
+(define ref-op?
+  (lambda (sign)
+    (equal? sign 'ref)))
+
+(define setref!-op?
+  (lambda (sign)
+    (equal? sign 'setref!)))
+
+(define dereference-op?
+  (lambda (sign)
+    (equal? sign 'dereference)))
 
 
 (define array-constructor?
@@ -347,7 +362,9 @@
 (define primitive-exp?
   (lambda (exp)
     (let [(prim-op (car exp))
-          (op-list '(+ - * / add1 subt1 cons list car cdr cell cell? set-cell! contents array array-ref array-set!))]
+          (op-list '(+ - * / add1 subt1 cons list car cdr cell cell?
+                     set-cell! contents array array-ref array-set!
+                     setref! dereference ref))]
       (if (memq prim-op op-list) #t #f))))
 
 (define let-exp?
@@ -395,3 +412,11 @@
          (>= (length (cdr exp)) 1))))
 
 (define get-exp-sequence cdr)
+
+(define ref-exp?
+  (lambda (exp)
+    (and (= 2 (length exp))
+         (equal? (car exp) 'ref)
+         (symbol? (cadr exp)))))
+
+(define get-ref-id cadr)

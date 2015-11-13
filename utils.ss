@@ -52,6 +52,7 @@
           (lit-exp (num) collector)
           (var-exp (id) collector)
           (bool-val (bool) collector)
+          (ref-exp (ref-id) (helper ref-id collector depth-counter))
           (lexvar-exp (depth position)
                       (cond [(contains? (cons exp depth) collector) collector]
                             [(> depth depth-counter) (cons (cons exp depth-counter) collector)]
@@ -83,6 +84,7 @@
       (lambda (exp collector)
         (cases expression exp
           (lexvar-exp (depth position) (cons exp collector))
+          (ref-exp (ref-id) (helper ref-id collector))
           (boolean-exp (sign rands)
                        (flat-map (lambda (rand) (helper rand collector)) rands))
           (lambda-exp (params body)

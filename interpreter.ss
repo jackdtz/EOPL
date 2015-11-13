@@ -55,7 +55,12 @@
                   (eopl:error "letrec-exp should not appear " letrec-exp))
       (lexvar-exp (depth position)
                   (apply-nameless-env depth position env))
-      (freevar-exp (id) (apply-global-env id))           
+      (freevar-exp (id) (apply-global-env id))
+      (ref-exp (ref-id) (cases expression ref-id
+                          (lexvar-exp (depth position) (apply-env-ref depth position env))
+                          (freevar-exp (id) (apply-global-env id global-env))
+                          (else
+                           (eopl:error "ref-exp has incorrect type" ref-exp))))
       (set!-exp (id rhs-exp)
                 (cases expression id
                   (lexvar-exp (depth position)
@@ -90,7 +95,7 @@
                   (eval-expression altern env)))
       (primapp-exp (prim rands)
                    (let [(args (eval-rands rands env))]
-                         (apply-primitve prim args))))))
+                         (apply-primitive prim args))))))
 
 
 
@@ -157,7 +162,7 @@
            (check-zero-sign (sign)
                             (zero? (car args))))))
 
-(define apply-primitve
+(define apply-primitive
   (lambda (prim args)
     (cases primitive prim
       (add (sign)            (+ (car args) (cadr args)))
@@ -185,7 +190,10 @@
                                     nil))
       (array-op (op)         (array (car args)))
       (array-ref-op (op)     (array-ref (car args) (cadr args)))
-      (array-set!-op (op)    (array-set! (car args) (cadr args) (caddr args))))))
+      (array-set!-op (op)    (array-set! (car args) (cadr args) (caddr args)))
+      (setref!-op (op)       (setref! (car args) (cadr args)))
+      (dereference-op (op)   (dereference (car args)))
+      (ref-op (op)           (cell (car args))))))
 
 
 

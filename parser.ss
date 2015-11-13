@@ -25,6 +25,7 @@
     (cond [(number? exp) (lit-exp exp)]
           [(symbol? exp) (var-exp exp)]
           [(boolean? exp) (bool-val exp)]
+          [(ref-exp? exp) (ref-exp (parse-expression (get-ref-id exp)))]
           [(if-exp? exp) (if-exp (parse-expression (get-pred exp))
                                  (parse-expression (get-conseq exp))
                                  (parse-expression (get-altern exp)))]
@@ -94,6 +95,9 @@
           [(array-constructor? (car prim-exp))        `( ,(array-op (car prim-exp))         1)]
           [(array-ref-op? (car prim-exp))             `( ,(array-ref-op (car prim-exp))     2)]
           [(array-set!-op? (car prim-exp))            `( ,(array-set!-op (car prim-exp))    3)]
+          [(setref!-op? (car prim-exp))               `( ,(setref!-op (car prim-exp))       2)]
+          [(dereference-op? (car prim-exp))           `( ,(dereference-op (car prim-exp))   1)]
+          [(ref-op? (car prim-exp))                   `( ,(ref-op (car prim-exp))           1)]
           [else 
            (eopl:error "unknow expression" exp)])))
 
@@ -107,6 +111,7 @@
           (lit-exp (num) ast-exp)
           (var-exp (id) (get-lexical-address id env))
           (bool-val (bool) ast-exp)
+          (ref-exp (ref-id) (ref-exp (helper ref-id env)))
           (lexvar-exp (depth postion) ast-exp)
           (freevar-exp (id) ast-exp)
           (boolean-exp (bool-sign rands)
@@ -182,6 +187,7 @@
       (lit-exp (num) ast-exp)
       (var-exp (id) ast-exp)
       (bool-val (bool) ast-exp)
+      (ref-exp (ref-id) ast-exp)
       (lexvar-exp (depth postion) ast-exp)
       (freevar-exp (id) ast-exp)
       (boolean-exp (bool-sign rands) ast-exp)
@@ -212,4 +218,7 @@
     (begin-exp (append
                 (map (lambda (id function) (set!-exp (parse-expression id) function)) ids functions)
                 (list body)))))
+
+
+
 

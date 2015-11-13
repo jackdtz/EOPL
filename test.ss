@@ -296,6 +296,20 @@
               "test for even? 99")
 
 
+(check-equal? (run '(let ([a 3]
+                          [b 4]
+                          [swap (lambda (x y)
+                                  (let ([temp (dereference x)])
+                                    (begin
+                                      (setref! x (dereference y))
+                                      (setref! y temp))))])
+                      (begin
+                        (swap (ref a) (ref b))
+                        (- a b))))
+              1
+              "test for ref function")
+
+
                    
 
                                       
