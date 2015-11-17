@@ -1,14 +1,16 @@
 #lang racket
 
+
 (define value-of
   (lambda (exp env)
     (match exp
       [(? boolean? bool) bool]
-      [(? number? num)    num]
-      [(? symbol? sym) (apply-env env sym)]
+      [(? number? num)   num]
+      [(? symbol? sym)  (unbox-update (apply-env env sym))]
       [`(zero? ,n)  (zero? (value-of n env))]
       [`(sub1 ,n) (sub1 (value-of n env))]
-      [`(* ,n1 ,n2) (* (value-of n1 env) (value-of n2 env))]
+      [`(* ,n1 ,n2) (* (value-of n1 env))
+                       (value-of n2 env)]
       [`(let ([,id* ,val*] ...) ,body)
        (letrec ([loop (lambda (ids vals body env)
                         (if (null? (cdr ids))
@@ -21,40 +23,48 @@
       [`(begin2 ,e1 ,e2) (begin (value-of e1 env) (value-of e2 env))]
       [`(random ,n) (random (value-of n env))]
       [`(lambda (,x) ,body) (closure x body env)]
-      [`(set! ,id ,val) (env-set! env id val)]
+      [`(set! ,id ,val) (env-set! env id (value-of val env))]
       [`(,rator ,rand) (apply-closure (value-of rator env)
-                                      (value-of rand env))])))
+                                      (if (symbol? rand)
+                                          (apply-env env rand)
+                                          (box (thunk (value-of rand env)))))])))
+
+(define-syntax thunk
+  (syntax-rules ()
+    ((_) (error "nothing"))
+    ((_ exp) (lambda () exp))))
+
+(define unbox-update
+  (lambda (box)
+    (let ([val (thrawn (unbox box))])
+      (set-box! box (thunk val))
+      val)))
+      
+
+(define thrawn
+  (lambda (thunk)
+    (thunk)))
+
 
 (define empty-env
   (lambda ()
     '()))
 
 (define extend-env
-  (lambda  (id arg old-env)
-    (cons (vector id arg) old-env)))
-
-
-(define get-id
-  (lambda (vec)
-    (vector-ref vec 0)))
-
-(define get-value
-  (lambda (vec)
-    (vector-ref vec 1)))
-
-(define apply-env
-  (lambda (env sym)
-    (cond [(null? env) (error "unbound var" sym)]
-          [(equal? (get-id (car env)) sym) (get-value (car env))]
-          [else
-           (apply-env (cdr env) sym)])))
+  (lambda (id val-box env)
+    (cons (cons id val-box) env)))
 
 (define env-set!
-  (lambda (env sym new-val)
-     (cond [(null? env) (error "unbound var" sym)]
-           [(equal? (get-id (car env)) sym) (vector-set! (car env) new-val)]
-           [else
-            (apply-env (cdr env) sym)])))
+  (lambda (env id val-box)
+    (let ([box (apply-env env id)])
+      (set-box! box val-box))))
+
+(define apply-env
+  (lambda (env id)
+  (let ([id-box (assq id env)])
+    (if id-box
+        (cdr id-box)
+        (error "unbounded id" id)))))
 
 
 (define closure
@@ -65,22 +75,13 @@
   (lambda (proc arg)
     (let ([id (car proc)]
           [body (cadr proc)]
-          [env (caddr proc)])
-      (value-of body (extend-env id arg env)))))
+          [env1 (caddr proc)])
+      (value-of body (extend-env id arg env1)))))
 
 
 (define run
   (lambda (exp)
     (value-of exp (empty-env))))
 
-(run '(let ([a 3]
-            [b 4]
-            [swap (lambda (x)
-                    (lambda (y)
-                      (let ([temp x])
-                        (begin2 (set! x y)
-                                (set! y temp)))))])
-        (begin2 ((swap a) b)
-                a)))
-        
-   
+(run '((lambda (z) 100)
+     ((lambda (x) (x x)) (lambda (x) (x x)))))

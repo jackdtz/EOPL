@@ -23,7 +23,19 @@
       [`(lambda (,x) ,body) (closure x body env)]
       [`(set! ,id ,val) (env-set! env id val)]
       [`(,rator ,rand) (apply-closure (value-of rator env)
-                                      (value-of rand env))])))
+                                      (value-of rand env))]
+      [`(cons^ ,head ,rest) (
+
+
+(define-syntax thunk
+ (syntax-rules ()
+   [(_) (error "nothing")]
+   [(_ e) (lambda () e)]))
+
+(define thrawn
+  (lambda (thunk-obj)
+    (thunk-obj)))
+              
 
 (define empty-env
   (lambda ()

@@ -25,7 +25,9 @@
       [`(lambda (,x) ,body) (closure x body env)]
       [`(set! ,id ,val) (env-set! env id (value-of val env))]
       [`(,rator ,rand) (apply-closure (value-of rator env)
-                                      (value-of rand env))])))
+                                      (if (symbol? rand)
+                                          (apply-env env rand)
+                                          (box (value-of rand env))))])))
 
 
 
@@ -34,8 +36,8 @@
     '()))
 
 (define extend-env
-  (lambda (id val env)
-    (cons (cons id (box val)) env)))
+  (lambda (id val-box env)
+    (cons (cons id val-box) env)))
 
 (define env-set!
   (lambda (env id val-box)
@@ -66,8 +68,10 @@
   (lambda (exp)
     (value-of exp (empty-env))))
 
-(run '((lambda (a)
-       ((lambda (p)
-          (begin2
-           (p a)
-           a)) (lambda (x) (set! x 4)))) 3))
+(run '((lambda (f)
+       ((lambda (g)
+          ((lambda (z) (begin2
+                        (g z)
+                        z))
+           55))
+        (lambda (y) (f y)))) (lambda (x) (set! x 44))))
