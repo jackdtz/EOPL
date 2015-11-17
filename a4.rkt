@@ -24,7 +24,10 @@
       [`(if ,test ,conseq ,alt) `(if ,(lex test env)
                                      ,(lex conseq env)
                                      ,(lex alt env))]
-      [`(* ,e1 ,e2) `(* ,(lex e1 env) ,(lex e2 env))])))
+      [`(* ,e1 ,e2) `(* ,(lex e1 env) ,(lex e2 env))]
+      [`(let ([,id* ,val*] ...) ,body)
+       (let ([env1 (append id* env)])
+         `(let ,(map (lambda (val) (lex val env1)) val*) ,(lex body env1)))])))
 
 
 (define get-index
@@ -52,3 +55,5 @@
   		     (if (zero? n) 1 (* n ((! !) (sub1 n))))))))
           ((! !) 5))
        '()))
+
+
