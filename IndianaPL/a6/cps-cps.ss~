@@ -1,0 +1,20 @@
+#lang racket
+
+(define primitive?
+  (lambda (x)
+    (memq x '(zero? add1 sub1 + - * /))))
+
+(define cps-simple-exp
+  (lambda (exp)
+    (match exp
+      [(? number? x) x]
+      [(? symbol? x) x]
+      [`(,(? primitive? prim) ,rands ...) `(,prim ,@(map cps-simple-exp rands))]
+      [`(if ,test ,conseq ,altern) `(if ,(cps-simple-exp test)
+                                        ,(cps-simple-exp conseq)
+                                        ,(cps-simple-exp altern))]
+      [`(lambda (,x) ,body) `(lambda (x k) (cps-exp body))]
+      [`(let ([,ids ,vals] ...) ,body) `(let (ids ,(map cps-simple-exp vals))
+                                         ,(cps-simple-exp body))]
+      [`(,rator ,rand) (error "can't call on application in simple-exp")]))) 
+      
