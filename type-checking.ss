@@ -64,11 +64,9 @@
       [(? number? x) 'int]
       [(? boolean? x) 'bool]
       [(? symbol? x) (apply-tenv x tenv)]
-      [`(lambda (,args ...) ,body)
-       (let ([type-list (get-var-types args)]
-             [var-list (get-var args)])
-         (begin (check-list-of-types type-list)
-                `(,type-list ,(eval-expression-type body (extend-env var-list type-list tenv)))))]
+      [`(lambda ([,types ,ids] ...) ,body)
+         (begin (check-list-of-types types)
+                `(,types ,(eval-expression-type body (extend-env ids types tenv))))]
       [`(let ([,ids ,sub-exps] ...) ,body)
        (eval-expression-type body (extend-env ids (map (lambda (sub-exp) (eval-expression-type sub-exp tenv)) sub-exps) tenv))]
       [`(letrec ([,return-types ,fun-names (lambda ([,args-types ,args-ids] ...) ,fun-bodys)] ...) ,letrec-body)
@@ -108,14 +106,14 @@
 
 
 
-#|
+
 (eval-type '(lambda ([int x] [int y]) (zero? x)))
 (eval-type '((lambda ([int x] [int y]) (zero? x)) 3 4))
 (eval-type '((lambda ([int x] [int y]) (+ x y)) 3 4))
 (eval-type '(lambda ([int x] [int y])
               (let ([z 3] [k 10])
                 (+ (- k z) (+ x y)))))
-|#
+
 (eval-type '(letrec ([int f (lambda ([int x] [int y]) (g x y))]
                      [int g (lambda ([int x] [int y]) (+ x y))])
               (f 2 3)))
