@@ -25,6 +25,13 @@
           (cdr slot)
           (error "unbound id" x env)))))
 
+(define walk
+  (lambda (x env)
+    (let ([slot (assq x env)])
+      (cond [(not slot) x]
+            [(var? (cdr slot)) (walk (cdr slot) env)]
+            [else (cdr slot)]))))
+
 (define extend-env
   (lambda (ids types env)
     (letrec ([loop (lambda (ids types env)
@@ -42,16 +49,15 @@
 (define typed? (lambda (t)
                  (let ([x (var-type t)])
                    (or (atomic-type? x)
-                       (compound-type? x)))))
+                       (if (list? x)
+                           (compound-type? x) #f)))))
 
 (define atomic-type? (lambda (t) (memq t type-keyword)))
 (define compound-type?
   (lambda (t)
     (if (not (pair? t))
         #f
-        (and (= (length t) 2)
-             (for-each (lambda (t) (typed? t)) (car t))
-             (typed? (cdr t))))))
+        #t)))
 
 (define var (lambda (x) (vector x)))
 (define var? (lambda (x) (vector? x)))
@@ -83,6 +89,41 @@
              (string->symbol 
               (string-append "t" (number->string n)))))))
 
+(define subt-env '())
+(define ext-subt-env (lambda (x v e) (cons `(,x . ,v) e)))
+
+
+(define reify
+  (lambda (res)
+    (define name
+      (lambda (n) 
+        (string->symbol 
+         (string-append "t" (number->string n)))))
+    (define reify1
+      (lambda (x n s)
+        (let ([res (walk x s)])
+          (cond [(pair? res)
+                 (letv* ([(u n1 s1) (reify1 (car res) n s)]
+                         [(v n2 s2) (reify1 (cdr res) n1 s1)])
+                        (values (cons u v) n2 s2))]
+                [(var? res)
+                 (let ([ct (var-type res)])
+                   (cond [(symbol? ct)
+                          (if (atomic-type? ct)
+                              (values ct n s)
+                              (let ([new-name (name n)])
+                                (values new-name (+ 1 n) (ext x new-name s))))]))]
+                [else (values res n s)]))))
+    (letv* ([(x1 n1 s1) (reify1 res 0 '())])
+      x1)))
+
+(define prettify
+  (lambda (t)
+    (if (not (pair? t))
+        t
+        `(,(map prettify (car t)) -> ,(map prettify (car t))))))
+                         
+
 (define infer
   (lambda (exp)
     (letrec
@@ -95,7 +136,7 @@
               [(? string? x) 'string]
               [`(lambda (,ids ...) ,body)
                (let* ([var-types (map var ids)]
-                      [env* (extend-env ids var-types tenv)])
+                      [env* (extend-env ids var-types env)])
                  `(,var-types . ,(infer1 body env*)))]
               [`(,rator ,rands ...)
                (let* ([rator-type (infer1 rator env)]
@@ -129,49 +170,17 @@
             (cond [(typed? v) (check-equal? (var-type v) t)]
                   [else
                    (begin (occur? v t)
-                          (set!-var-type v t))]))]
-         
-         [prettify
-          (lambda (res)
-            (letrec ([replace-if-not-type 
-                      (lambda (t env)
-                        (cond [(atomic-type? t) t]
-                              [else
-                               (let ([slot (assq t env)])
-                                 (if slot (cdr slot) t))]))]
-                     [loop (lambda (t env col)
-                             (cond [(null? t) (values env col)]
-                                   [(atomic-type? (car t)) (loop (cdr t) env (cons '* (cons (car t) col)))]
-                                   [(var? (car t))
-                                    (let ([vat-content (var-type (car t))])
-                                      (if (a
-                                   [else
-                                    (let ([slot (assq (car t) env)])
-                                      (if slot
-                                          (if (null? (cdr t))
-                                              (loop (cdr t) env (cons (cdr slot) col))
-                                              (loop (cdr t) env (cons '* (cons (cdr slot) col))))
-                                          (let ([new-var (name)])
-                                            (if (null? (cdr t))
-                                                (loop (cdr t) (cons `(,(car t) ,new-var) env) (cons new-var col))
-                                                (loop (cdr t) (cons `(,(car t) ,new-var) env) (cons '* (cons new-var col)))))))]))]
-                     [single-type? (lambda (res) (if (and (symbol? res) (atomic-type? res)) #t #f))])
-              (cond [(symbol? res) (and (atomic-type? res) res)]
-                    [else
-                     (letv* ([(env* col*) (loop (car res) '() '())])
-                            (if (list? (cdr res))
-                                `(,(reverse col*) -> ,(loop (cdr res) env* '()))
-                                `(,(reverse col*) -> ,(if (atomic-type? (cdr res))
-                                                          (cdr res)
-                                                          (cdr (assq (cdr res) env*))))))])))])
+                          (set!-var-type v t))]))])
       (let ([res (infer1 exp tenv)])
         (prettify res)))))
 
 
       
-(infer '(lambda (v) v))
+;(infer '(lambda (v) v))
+;(infer '(lambda (x y) (+ x y)))
+;(infer '(lambda (x y) (zero? x)))
+;(infer '((lambda (x y) (zero? x)) 3 4))
+;(infer '((lambda (x y) (+ x y)) 3 4))
+(infer '(lambda (f) (lambda (x) (f x))))
 
-(infer '(lambda (x y) (+ x y)))
-(infer '(lambda (x y) (zero? x)))
-(infer '((lambda (x y) (zero? x)) 3 4))
-(infer '((lambda (x y) (+ x y)) 3 4))
+
