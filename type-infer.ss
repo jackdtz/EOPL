@@ -27,7 +27,7 @@
 
 (define walk
   (lambda (x env)
-    (let ([slot (assoc x env)])
+    (let ([slot (assq x env)])
       (cond [(not slot) x]
             [(var? (cdr slot)) (walk (cdr slot) env)]
             [else (cdr slot)]))))
@@ -200,42 +200,48 @@
 
 
       
-(infer '(lambda (v) v))
+;(infer '(lambda (v) v))
 ; => (t0 -> t0)
 
-(infer '(lambda (x y) (+ x y)))
+;(infer '(lambda (x y) (+ x y)))
 ; => ((int * int) -> int)
 
-(infer '(lambda (x y) (zero? x)))
+;(infer '(lambda (x y) (zero? x)))
 ; => ((int * t0) -> bool)
 
-(infer '((lambda (x y) (zero? x)) 3 4))
+;(infer '((lambda (x y) (zero? x)) 3 4))
 ; => bool
 
-(infer '((lambda (x y) (+ x y)) 3 4))
+;(infer '((lambda (x y) (+ x y)) 3 4))
 ; => int
 
-(infer '(lambda (f) (lambda (x) (f x))))
+;(infer '(lambda (f) (lambda (x) (f x))))
 ; => ((t0 -> t1) -> (t0 -> t1))
 
-(infer '((lambda (f) (lambda (x) (f x))) add1))
+;(infer '((lambda (f) (lambda (x) (f x))) add1))
 ; => (int -> int)
 
-(infer '((lambda (f) (f 1)) (lambda (v) v)))
+;(infer '((lambda (f) (f 1)) (lambda (v) v)))
 ; => int
 
-(infer '(lambda (m) (lambda (n) (lambda (f) (lambda (x) ((m (n f)) x))))))
+;(infer '(lambda (m) (lambda (n) (lambda (f) (lambda (x) ((m (n f)) x))))))
 ; => ((t0 -> (t1 -> t2)) -> ((t3 -> t0) -> (t3 -> (t1 -> t2))))
 
-(define S '(lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
-(define K '(lambda (x) (lambda (y) x)))
+;(define S '(lambda (x) (lambda (y) (x y))))
+;(define K '(lambda (a) a))
+
+;(infer S)
 
 
-(infer `(,S ,K))
+;(infer `(,S ,K))
 ; => ((t0 -> t1) -> (t0 -> t0))
 
-(infer `((,S ,K) ,K))
+;(infer `((,S ,K) ,K))
 ; => (t0 -> t0)
 
-(infer '(if (zero? 1) #t #f))
+;(infer '(if (zero? 1) #t #f))
 
+(define S '(lambda (x) (lambda (y) (x y))))
+(define K '(lambda (a) (lambda (b) a)))
+
+(infer `(,S ,K))
