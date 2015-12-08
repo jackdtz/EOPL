@@ -219,9 +219,10 @@
                                   [else
 ;                                   (if (var? t)
 ;                                       (set!-var-type v (var-type t))
-                                       (set!-var-type v t)])))]))])
+                                   (set!-var-type v t)])))]))])
       (let ([res (infer1 exp tenv)])
-        (prettify (reify res))))))
+;        (prettify (reify res))))))
+        res))))
 ;        (let ([ct (var-type res)])
 ;          (display (caar ct))
 ;          (newline)
@@ -230,7 +231,7 @@
 ;          (eq? (caar ct) (cdr (var-type (cdr ct)))))))))
 
 
-      
+#| 
 (infer '(lambda (v) v))
 ; => (t0 -> t0)
 
@@ -258,8 +259,11 @@
 (infer '(lambda (m) (lambda (n) (lambda (f) (lambda (x) ((m (n f)) x))))))
 ; => ((t0 -> (t1 -> t2)) -> ((t3 -> t0) -> (t3 -> (t1 -> t2))))
 
-(define S '(lambda (x) (lambda (y) (x y))))
-(define K '(lambda (a) a))
+(define S '(lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+(define K '(lambda (x) (lambda (y) x)))
+
+
+
 
 (infer `(,S ,K))
 ; => ((t0 -> t1) -> (t0 -> t0))
@@ -269,7 +273,21 @@
 
 (infer '(if (zero? 1) #t #f))
 
+|#
+
 ;(define S '(lambda (x) (lambda (y) (x y))))
 ;(define K '(lambda (a) (lambda (b) a)))
 
 ;(infer `(,S ,K))
+
+(define S '(lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+(define K '(lambda (x) (lambda (y) x)))
+
+
+
+
+;(infer `(,S ,K))
+; => ((t0 -> t1) -> (t0 -> t0))
+
+(infer `((,S ,K) ,K))
+; => (t0 -> t0)
