@@ -158,10 +158,23 @@
                (let* ([rator-type (infer1 rator env)]
                       [rands-type (map (lambda (rand) (infer1 rand env)) rands)]
                       [result-type (var (fresh-var))])
-                 (begin (check-equal? rator-type `(,rands-type . ,result-type))
+                 (begin ;(display rator-type)
+;                        (newline)
+;                        (display rands-type)
+;                        (let ([ct (car rands-type)])
+;                          (cond [(pair? ct) (display (eq? (caar ct) (cddr ct)))]))
+;                         (display (car ct)) (newline) (display (cddr ct)) (newline)
+;                          (display (eq? (car ct) (cddr ct))))
+;                        (newline)
+                        (check-equal? rator-type `(,rands-type . ,result-type))
                         result-type))]))]
          [check-equal?
           (lambda (t1 t2)
+;            (if (equal? t2 `((#(a)) (#(b)) . #(a)))
+;                (let ([ct (car t2)])
+;                  (display (car ct)) (newline)
+;                  (display (cddr t2)) (newline)
+;                  (display (eq? (car ct) (cddr t2))))
             (cond [(eqv? t1 t2)]
                   [(var? t1) (check-var-equal? t1 t2)]
                   [(var? t2) (check-var-equal? t2 t1)]
@@ -179,6 +192,18 @@
                            (for-each
                             (lambda (t1 t2) (check-equal? t1 t2))
                             arg-type-t1 arg-type-t2)
+;                           (let ([ct (var-type (car arg-type-t1))])
+;                             (display (caar ct))
+;                             (newline)
+;                             (display (cdr (var-type (cdr ct))))
+;                             (newline)
+;                             (display (eq? (caar ct) (cdr (var-type (cdr ct))))))
+
+;                           (let ([ct (car arg-type-t2)])
+;                            (display (caar ct)) (newline)
+;                             (display (cddr ct)) (newline)
+;                             (display (eq? (caar ct) (cddr ct))))
+                           
                            (check-equal? return-type-t1 return-type-t2))
                          (error "not type checked" t1 t2)))]))]
          [check-var-equal?
@@ -192,56 +217,59 @@
                                              (car ct) (car t))
                                    (check-equal? (cdr ct) (cdr t))]
                                   [else
-                                   (if (var? t)
-                                       (set!-var-type v (var-type t))
-                                       (set!-var-type v t))])))]))])
+;                                   (if (var? t)
+;                                       (set!-var-type v (var-type t))
+                                       (set!-var-type v t)])))]))])
       (let ([res (infer1 exp tenv)])
         (prettify (reify res))))))
+;        (let ([ct (var-type res)])
+;          (display (caar ct))
+;          (newline)
+;          (display (cdr (var-type (cdr ct))))
+;          (newline)
+;          (eq? (caar ct) (cdr (var-type (cdr ct)))))))))
 
 
       
-;(infer '(lambda (v) v))
+(infer '(lambda (v) v))
 ; => (t0 -> t0)
 
-;(infer '(lambda (x y) (+ x y)))
+(infer '(lambda (x y) (+ x y)))
 ; => ((int * int) -> int)
 
-;(infer '(lambda (x y) (zero? x)))
+(infer '(lambda (x y) (zero? x)))
 ; => ((int * t0) -> bool)
 
-;(infer '((lambda (x y) (zero? x)) 3 4))
+(infer '((lambda (x y) (zero? x)) 3 4))
 ; => bool
 
-;(infer '((lambda (x y) (+ x y)) 3 4))
+(infer '((lambda (x y) (+ x y)) 3 4))
 ; => int
 
-;(infer '(lambda (f) (lambda (x) (f x))))
+(infer '(lambda (f) (lambda (x) (f x))))
 ; => ((t0 -> t1) -> (t0 -> t1))
 
-;(infer '((lambda (f) (lambda (x) (f x))) add1))
+(infer '((lambda (f) (lambda (x) (f x))) add1))
 ; => (int -> int)
 
-;(infer '((lambda (f) (f 1)) (lambda (v) v)))
+(infer '((lambda (f) (f 1)) (lambda (v) v)))
 ; => int
 
-;(infer '(lambda (m) (lambda (n) (lambda (f) (lambda (x) ((m (n f)) x))))))
+(infer '(lambda (m) (lambda (n) (lambda (f) (lambda (x) ((m (n f)) x))))))
 ; => ((t0 -> (t1 -> t2)) -> ((t3 -> t0) -> (t3 -> (t1 -> t2))))
 
-;(define S '(lambda (x) (lambda (y) (x y))))
-;(define K '(lambda (a) a))
-
-;(infer S)
-
-
-;(infer `(,S ,K))
-; => ((t0 -> t1) -> (t0 -> t0))
-
-;(infer `((,S ,K) ,K))
-; => (t0 -> t0)
-
-;(infer '(if (zero? 1) #t #f))
-
 (define S '(lambda (x) (lambda (y) (x y))))
-(define K '(lambda (a) (lambda (b) a)))
+(define K '(lambda (a) a))
 
 (infer `(,S ,K))
+; => ((t0 -> t1) -> (t0 -> t0))
+
+(infer `((,S ,K) ,K))
+; => (t0 -> t0)
+
+(infer '(if (zero? 1) #t #f))
+
+;(define S '(lambda (x) (lambda (y) (x y))))
+;(define K '(lambda (a) (lambda (b) a)))
+
+;(infer `(,S ,K))
