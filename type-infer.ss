@@ -144,6 +144,12 @@
               [(? boolean? x) 'bool]
               [(? symbol? x) (look-up x env)]
               [(? string? x) 'string]
+              [`(if ,test ,conseq ,altern)
+               (begin (check-equal? (infer1 test env) 'bool)
+                      (let ([conseq-type (infer1 conseq env)]
+                            [altern-type (infer1 altern env)])
+                        (check-equal? conseq-type altern-type)
+                        conseq-type))]
               [`(lambda (,ids ...) ,body)
                (let* ([var-types (map var ids)]
                       [env* (extend-env ids var-types env)])
@@ -230,4 +236,6 @@
 
 (infer `((,S ,K) ,K))
 ; => (t0 -> t0)
+
+(infer '(if (zero? 1) #t #f))
 
