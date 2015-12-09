@@ -1,5 +1,6 @@
 #lang racket
 
+; A naive type inferer. Reference: eopl, 2nd edition
 
 (define-syntax letv*
   (syntax-rules ()
@@ -27,7 +28,7 @@
 
 (define walk
   (lambda (x env)
-    (let ([slot (assq x env)])
+    (let ([slot (assoc x env)])
       (cond [(not slot) x]
             [(var? (cdr slot)) (walk (cdr slot) env)]
             [else (cdr slot)]))))
@@ -158,24 +159,13 @@
                (let* ([rator-type (infer1 rator env)]
                       [rands-type (map (lambda (rand) (infer1 rand env)) rands)]
                       [result-type (var (fresh-var))])
-                 (begin ;(display rator-type)
-;                        (newline)
-;                        (display rands-type)
-;                        (let ([ct (car rands-type)])
-;                          (cond [(pair? ct) (display (eq? (caar ct) (cddr ct)))]))
-;                         (display (car ct)) (newline) (display (cddr ct)) (newline)
-;                          (display (eq? (car ct) (cddr ct))))
-;                        (newline)
-                        (check-equal? rator-type `(,rands-type . ,result-type))
-                        result-type))]))]
+                 (begin 
+                   (let ([recc `(,rands-type . ,result-type)])
+                        (check-equal? rator-type recc)
+                        result-type)))]))]
          [check-equal?
           (lambda (t1 t2)
-;            (if (equal? t2 `((#(a)) (#(b)) . #(a)))
-;                (let ([ct (car t2)])
-;                  (display (car ct)) (newline)
-;                  (display (cddr t2)) (newline)
-;                  (display (eq? (car ct) (cddr t2))))
-            (cond [(eqv? t1 t2)]
+            (cond [(eq? t1 t2)]
                   [(var? t1) (check-var-equal? t1 t2)]
                   [(var? t2) (check-var-equal? t2 t1)]
                   [(and (atomic-type? t1) (atomic-type? t2))
@@ -184,26 +174,14 @@
                        #t)]
                   [else
                    (let* ([arg-type-t1 (car t1)]
-                              [arg-type-t2 (car t2)]
-                              [return-type-t1 (cdr t1)]
-                              [return-type-t2 (cdr t2)])
+                          [arg-type-t2 (car t2)]
+                          [return-type-t1 (cdr t1)]
+                          [return-type-t2 (cdr t2)])
                      (if (= (length arg-type-t1) (length arg-type-t2))
                          (begin
                            (for-each
                             (lambda (t1 t2) (check-equal? t1 t2))
                             arg-type-t1 arg-type-t2)
-;                           (let ([ct (var-type (car arg-type-t1))])
-;                             (display (caar ct))
-;                             (newline)
-;                             (display (cdr (var-type (cdr ct))))
-;                             (newline)
-;                             (display (eq? (caar ct) (cdr (var-type (cdr ct))))))
-
-;                           (let ([ct (car arg-type-t2)])
-;                            (display (caar ct)) (newline)
-;                             (display (cddr ct)) (newline)
-;                             (display (eq? (caar ct) (cddr ct))))
-                           
                            (check-equal? return-type-t1 return-type-t2))
                          (error "not type checked" t1 t2)))]))]
          [check-var-equal?
@@ -217,21 +195,13 @@
                                              (car ct) (car t))
                                    (check-equal? (cdr ct) (cdr t))]
                                   [else
-;                                   (if (var? t)
-;                                       (set!-var-type v (var-type t))
-                                   (set!-var-type v t)])))]))])
+                                   (if (var? t)
+                                       (set!-var-type v (var-type t))
+                                       (set!-var-type v t))])))]))])
       (let ([res (infer1 exp tenv)])
-;        (prettify (reify res))))))
-        res))))
-;        (let ([ct (var-type res)])
-;          (display (caar ct))
-;          (newline)
-;          (display (cdr (var-type (cdr ct))))
-;          (newline)
-;          (eq? (caar ct) (cdr (var-type (cdr ct)))))))))
+        (prettify (reify res))))))
 
-
-#| 
+ 
 (infer '(lambda (v) v))
 ; => (t0 -> t0)
 
@@ -242,6 +212,9 @@
 ; => ((int * t0) -> bool)
 
 (infer '((lambda (x y) (zero? x)) 3 4))
+; => bool
+
+(infer '(if (zero? 1) #t #f))
 ; => bool
 
 (infer '((lambda (x y) (+ x y)) 3 4))
@@ -262,31 +235,7 @@
 (define S '(lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
 (define K '(lambda (x) (lambda (y) x)))
 
-
-
-
 (infer `(,S ,K))
-; => ((t0 -> t1) -> (t0 -> t0))
-
-(infer `((,S ,K) ,K))
-; => (t0 -> t0)
-
-(infer '(if (zero? 1) #t #f))
-
-|#
-
-;(define S '(lambda (x) (lambda (y) (x y))))
-;(define K '(lambda (a) (lambda (b) a)))
-
-;(infer `(,S ,K))
-
-(define S '(lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
-(define K '(lambda (x) (lambda (y) x)))
-
-
-
-
-;(infer `(,S ,K))
 ; => ((t0 -> t1) -> (t0 -> t0))
 
 (infer `((,S ,K) ,K))
